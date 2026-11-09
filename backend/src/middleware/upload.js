@@ -1,6 +1,6 @@
 import multer from "multer";
 import { randomUUID } from "node:crypto";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { pipeline } from "node:stream/promises";
 import cloudinary, { isCloudinaryConfigured } from "../config/cloudinary.js";
 import { discardAvatarUpload } from "../services/avatarImages.js";
 
@@ -27,21 +27,31 @@ const upload = (handler) => (req, res, next) => {
   return handler(req, res, (error) => (error ? next(error) : next()));
 };
 
-const avatarStorage = new CloudinaryStorage({
-  cloudinary,
-  params: (req) => ({
-    folder: `${process.env.CLOUDINARY_FOLDER || "fixly"}/avatars/${req.user._id}`,
-    public_id: randomUUID(),
-    resource_type: "image",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    format: "webp",
-    transformation: [{ width: 512, height: 512, crop: "fill", gravity: "auto", quality: "auto" }],
-    timeout: 30000,
-  }),
-});
+const storeAvatar = async (req, file) => {
+  let transfer;
+  const uploaded = new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({
+      folder: `${process.env.CLOUDINARY_FOLDER || "fixly"}/avatars/${req.user._id}`,
+      public_id: randomUUID(),
+      resource_type: "image",
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      format: "webp",
+      transformation: [{ width: 512, height: 512, crop: "fill", gravity: "auto", quality: "auto" }],
+      timeout: 30000,
+    }, (error, result) => error ? reject(error) : resolve(result));
+    transfer = pipeline(file.stream, stream);
+  });
+  const [result] = await Promise.all([uploaded, transfer]);
+  return { path: result.secure_url, size: result.bytes, filename: result.public_id };
+};
 
-avatarStorage._removeFile = (req, file, callback) => {
-  discardAvatarUpload(req.user._id, file.filename).then(() => callback(), callback);
+export const avatarStorage = {
+  _handleFile(req, file, callback) {
+    storeAvatar(req, file).then((result) => callback(null, result), callback);
+  },
+  _removeFile(req, file, callback) {
+    discardAvatarUpload(req.user._id, file.filename).then(() => callback(), callback);
+  },
 };
 
 export const uploadAvatar = upload(multer({

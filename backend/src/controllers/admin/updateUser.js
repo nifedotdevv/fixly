@@ -1,9 +1,53 @@
 import mongoose from "mongoose";
 import User from "../../models/users.js";
 import Profile from "../../models/artisanProfile.js";
+import { runAccountLifecycle } from "../../services/accountLifecycle.js";
 import { handleMongooseError } from "../../utils/errors.js";
 
 const ALLOWED_FIELDS = ["firstName", "lastName", "role"];
+
+const updateAccount = async (id, updates) => {
+  const existing = await User.findOne({ _id: id, isDeleted: { $ne: true } });
+  if (!existing) {
+    return {
+      statusCode: 404,
+      success: false,
+      message: "User not found",
+    };
+  }
+
+  if (
+    updates.role !== undefined &&
+    updates.role !== "artisan" &&
+    await Profile.exists({ user_id: id })
+  ) {
+    return {
+      statusCode: 409,
+      success: false,
+      message: "An account with an artisan profile must retain the artisan role",
+    };
+  }
+
+  const user = await User.findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, updates, {
+    returnDocument: "after",
+    runValidators: true,
+  }).select("-password");
+
+  if (!user) {
+    return {
+      statusCode: 404,
+      success: false,
+      message: "User not found",
+    };
+  }
+
+  return {
+    statusCode: 200,
+    success: true,
+    message: "User updated successfully",
+    data: user,
+  };
+};
 
 // PATCH /api/v1/admin/user/:id — admin edits any user.
 export const updateUser = async (req, res) => {
@@ -38,46 +82,11 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    const existing = await User.findOne({ _id: id, isDeleted: { $ne: true } });
-    if (!existing) {
-      return res.status(404).json({
-        statusCode: 404,
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    if (
-      updates.role !== undefined &&
-      updates.role !== "artisan" &&
-      await Profile.exists({ user_id: id })
-    ) {
-      return res.status(409).json({
-        statusCode: 409,
-        success: false,
-        message: "An account with an artisan profile must retain the artisan role",
-      });
-    }
-
-    const user = await User.findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, updates, {
-      returnDocument: "after",
-      runValidators: true,
-    }).select("-password");
-
-    if (!user) {
-      return res.status(404).json({
-        statusCode: 404,
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    return res.status(200).json({
-      statusCode: 200,
-      success: true,
-      message: "User updated successfully",
-      data: user,
-    });
+    const operation = () => updateAccount(id, updates);
+    const response = updates.role === undefined
+      ? await operation()
+      : await runAccountLifecycle(id, "update-role", operation);
+    return res.status(response.statusCode).json(response);
   } catch (error) {
     return handleMongooseError(res, error);
   }
