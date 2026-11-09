@@ -3,6 +3,8 @@ import { hostname } from "node:os";
 import AccountLifecycleLock from "../models/accountLifecycleLock.js";
 import { AccountLifecycleConflictError, isDuplicateKey } from "../utils/errors.js";
 
+// Creation, role changes, deletion, and restoration share this account-scoped lock.
+// Callers must read invariant-related account/profile state only after acquiring it.
 export const runAccountLifecycle = async (id, action, operation) => {
   const token = randomUUID();
   try {
