@@ -3,6 +3,7 @@ import User from "../../models/users.js";
 import Profile from "../../models/artisanProfile.js";
 import { runAccountLifecycle } from "../../services/accountLifecycle.js";
 import { handleMongooseError } from "../../utils/errors.js";
+import { assertNoBookingObligations } from "../../services/requests/rules.js";
 
 const ALLOWED_FIELDS = ["firstName", "lastName", "role"];
 
@@ -14,6 +15,10 @@ const updateAccount = async (id, updates) => {
       success: false,
       message: "User not found",
     };
+  }
+
+  if (updates.role !== undefined && updates.role !== existing.role) {
+    await assertNoBookingObligations(id);
   }
 
   if (

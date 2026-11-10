@@ -12,6 +12,7 @@ import artisanRoutes from "./routes/artisan.js";
 import adminRoutes from "./routes/admin.js";
 import usersRoutes from "./routes/users.js";
 import uploadsRoutes from "./routes/uploads.js";
+import serviceRequestRoutes from "./routes/serviceRequests.js";
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use("/api/v1/artisan", artisanRoutes)
 app.use("/api/v1/admin", adminRoutes)
 app.use("/api/v1/users", usersRoutes)
 app.use("/api/v1/uploads", uploadsRoutes)
+app.use("/api/v1/service-requests", serviceRequestRoutes);
 
 app.use((req, res) => {
     return res.status(404).json({

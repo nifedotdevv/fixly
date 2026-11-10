@@ -3,6 +3,8 @@
 Base URL: http://localhost:5000
 API prefix: /api/v1
 
+Service requests, inspection/repair reservations, quotes, completion and the internal verified-payment boundary are documented in [SERVICE_REQUESTS.md](SERVICE_REQUESTS.md), including endpoint bodies and a Postman walkthrough. These participant-only routes are under `/api/v1/service-requests`; there is no admin booking bypass or public mark-paid endpoint. Unresolved booking obligations now block account deletion/soft deletion and incompatible role changes.
+
 ## Authentication
 
 Protected routes require:

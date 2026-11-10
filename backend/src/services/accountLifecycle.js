@@ -38,3 +38,12 @@ export const runAccountLifecycle = async (id, action, operation) => {
     }
   }
 };
+
+// Fixed ordering prevents cyclic acquisition; contention fails promptly with the existing 409.
+export const runAccountLifecycles = (ids, action, operation) => {
+  const ordered = [...new Set(ids.map((id) => id.toString()))].sort();
+  const acquire = (index) => index === ordered.length
+    ? operation()
+    : runAccountLifecycle(ordered[index], action, () => acquire(index + 1));
+  return acquire(0);
+};

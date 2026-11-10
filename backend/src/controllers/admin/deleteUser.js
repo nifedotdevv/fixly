@@ -4,6 +4,7 @@ import Profile from "../../models/artisanProfile.js";
 import { handleMongooseError } from "../../utils/errors.js";
 import { cleanupAvatarImages } from "../../services/avatarImages.js";
 import { runAccountLifecycle } from "../../services/accountLifecycle.js";
+import { assertNoBookingObligations } from "../../services/requests/rules.js";
 
 const result = (statusCode, message, data) => ({
   statusCode,
@@ -28,6 +29,7 @@ const lifecycle = (action, operation) => async (req, res) => {
 };
 
 export const deleteUser = lifecycle("delete", async (id) => {
+  await assertNoBookingObligations(id);
   const account = await User.findOneAndUpdate({ _id: id }, {
     $set: { isDeleted: true, deletedAt: new Date() },
     $inc: { avatarVersion: 1 },
@@ -52,6 +54,8 @@ export const deleteUser = lifecycle("delete", async (id) => {
 const setDeletionState = (isDeleted) => lifecycle(isDeleted ? "soft-delete" : "restore", async (id) => {
   const user = await User.findById(id);
   if (!user) return notFound();
+
+  if (isDeleted) await assertNoBookingObligations(id);
 
   const deletedAt = isDeleted ? (user.deletedAt || new Date()) : null;
   const state = { isDeleted, deletedAt };
