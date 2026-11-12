@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node --test tests/*.test.js",
+    "lifecycle:inspect": "node scripts/recoverLifecycleLock.js",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
   },

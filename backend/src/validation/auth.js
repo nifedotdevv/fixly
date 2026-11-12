@@ -21,6 +21,7 @@ const registerValidationSchema = Joi.object({
   confirmPassword: Joi.any().valid(Joi.ref("password")).messages({
     "any.only": "Passwords do not match",
   }),
+  previousPassword: Joi.string().max(100).optional(),
   role: Joi.string()
     .valid("house_owner", "artisan")
     .default("house_owner")

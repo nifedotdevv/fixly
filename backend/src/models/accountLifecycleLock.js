@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 const schema = new mongoose.Schema({
   _id: { type: mongoose.Schema.Types.ObjectId, required: true },
   token: { type: String, required: true },
-  action: { type: String, enum: ["delete", "soft-delete", "restore", "create-profile", "update-role", "service-request", "verified-payment"], required: true },
+  action: { type: String, enum: ["delete", "soft-delete", "restore", "restart", "create-profile", "update-role", "service-request", "verified-payment"], required: true },
   startedAt: { type: Date, default: Date.now },
   host: { type: String, required: true },
   processId: { type: Number, required: true },

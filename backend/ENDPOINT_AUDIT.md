@@ -370,3 +370,14 @@ PATCH /api/v1/users/:id (controller-level validation):
   ]
 }
 ```
+
+
+## Account recovery additions (2026-11-12)
+
+- Authenticated `DELETE /api/v1/users/me` requires current-password confirmation; soft deletion revokes sessions and starts a configurable 30-day recovery window.
+- `POST /api/v1/auth/reactivate` verifies email/password and restores only self-deleted accounts within that window; log in afterward for a new JWT. Invalid credentials or ineligible accounts return 401.
+- Registration accepts optional `previousPassword`. With correct proof, a self-deleted account within the window returns 409 with recovery options. After the window it is permanently removed before creating a fresh account with a new id. Missing/incorrect proof, admin deactivation, unknown deletion metadata, or active accounts return generic 409. Existing booking obligations and provider cleanup can still block deletion.
+- Admin soft deletion remains an administrative restriction; public recovery cannot bypass it. Every soft deletion revokes previous JWTs.
+- Pending lifecycle work and queued avatar cleanup now receive bounded background repair. Uncertain-write locks still require exact-token operator recovery after fencing old writers.
+
+See [ACCOUNT_LIFECYCLE.md](ACCOUNT_LIFECYCLE.md) for configuration, recovery tooling, retry behavior, and deployment limitations.
