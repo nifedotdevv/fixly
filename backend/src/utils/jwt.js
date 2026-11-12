@@ -5,7 +5,7 @@ export const generateToken = (user) => {
     throw new Error("JWT_SECRET is missing");
   }
   return jwt.sign(
-    { id: user._id },
+    { id: user._id, authVersion: user.authVersion || 0 },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "1d" },
   );

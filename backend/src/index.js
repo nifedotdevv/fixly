@@ -5,8 +5,13 @@ import cors from "cors";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
+import mongoose from "mongoose";
 import { connectDB } from "./config/dbConnection.js";
 import { configureCloudinary } from "./config/cloudinary.js";
+import { recoverPendingAccountLifecycles } from "./services/accountLifecycleRecovery.js";
+import { startAvatarCleanupSweep } from "./services/avatarCleanupSweep.js";
+import { startBackgroundTask } from "./services/backgroundTask.js";
+import { positiveInteger } from "./config/backgroundJobs.js";
 import authRoutes from "./routes/auth.js";
 import artisanRoutes from "./routes/artisan.js";
 import adminRoutes from "./routes/admin.js";
@@ -109,9 +114,30 @@ const start = async () => {
     if (!configureCloudinary()) {
         console.warn("Cloudinary not configured - upload endpoints will return 503");
     }
-    app.listen(PORT, () => {
+    // Read configuration after dotenv has loaded, before accepting traffic.
+    positiveInteger("SOFT_DELETE_GRACE_DAYS", 30, 3650);
+    const recoveryInterval = positiveInteger("LIFECYCLE_RECOVERY_INTERVAL_MS", 60_000, 86_400_000);
+    const jobs = [
+        startAvatarCleanupSweep(),
+        startBackgroundTask(recoverPendingAccountLifecycles, recoveryInterval, { runImmediately: true }),
+    ];
+    const server = app.listen(PORT, () => {
         console.log(`Server is running on ${PORT}`);
     });
+    let stopping = false;
+    const shutdown = async () => {
+        if (stopping) return;
+        stopping = true;
+        const closed = new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+        await Promise.all([closed, ...jobs.map((job) => job.stop())]);
+        await mongoose.disconnect();
+    };
+    for (const signal of ["SIGTERM", "SIGINT"]) {
+        process.once(signal, () => shutdown().catch((error) => {
+            console.error("Shutdown failed:", error.name);
+            process.exitCode = 1;
+        }));
+    }
 };
 
 if (process.env.NODE_ENV !== "test") {

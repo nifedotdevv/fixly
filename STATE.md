@@ -35,10 +35,14 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Generic login failures without internal messages in responses or sensitive details in logs
 - [x] Authenticated GET/PUT/DELETE /api/v1/users/me/avatar for every role, 5MB image limit, per-account upload limits, and 512x512 WEBP conversion
 - [x] Private avatar metadata and revision guards, queued cleanup retries, public avatar URLs, and image cleanup on permanent account deletion
-- [x] Backend regression suite: 101 tests covering concurrent creation, avatar changes, multipart limits, lifecycle conflicts/retries, and separate personal/professional reads
+- [x] Backend regression suite: 177 tests covering account recovery, concurrent creation, avatar workers/changes, multipart limits, lifecycle conflicts/retries, booking/payment boundaries, and separate personal/professional reads
 - [x] Patched body-parser to 2.4.0; bounded password bytes for new accounts and validated list queries
 - [x] GET /api/v1/users/me and GET /api/v1/artisan/profile/me preserve separate account/professional views
 - [x] Shared MongoDB lifecycle coordinator rejects concurrent delete/soft-delete/restore operations with 409
+- [x] Durable lifecycle intent, profile-before-user permanent deletion, bounded automatic repair, and exact-token operator recovery tooling
+- [x] Background avatar cleanup with atomic claims, retry scheduling, non-overlapping passes, and graceful shutdown
+- [x] Password-confirmed self deletion/reactivation and credential-verified fresh registration after a configurable recovery window; admin restrictions retained
+- [x] Session revocation on self/admin soft deletion; old JWTs remain invalid after restore
 
 ## What Is Next
 - [ ] Review existing administrator memberships and previously supplied ratings; no automatic data cleanup was performed
@@ -50,9 +54,9 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 
 ## Known Gotchas & Constraints
 - Profile creation clients must omit user_id and rating; either field causes a 400 response.
-- Cascades can partially complete on standalone MongoDB; retry the same operation after an application error. A database driver error can retain a lock and requires recovery before retry.
-- User email and profile owner uniqueness remain global, including soft-deleted records, preserving restoration without identity reuse.
-- Avatar cleanup is retried on the next avatar change or permanent deletion, with no background worker. If both database persistence and cleanup cannot complete, the uploaded public ID is logged for recovery.
+- Cascades remain non-transactional on standalone MongoDB. Durable intent is repaired by the next coordinated operation or bounded background maintenance. Uncertain driver errors/crashed writers retain safe locks until verified operator recovery.
+- Email/profile uniqueness remains global. Self-deleted accounts can reactivate within the recovery window or restart afterward using previous-password proof; admin-deactivated and legacy accounts require admin handling.
+- Queued avatar cleanup is retried by a bounded background sweep as well as user actions. If both database persistence and cleanup cannot complete, the uploaded public ID is logged for manual recovery.
 - Avatar DELETE can return 503 with avatar already null when provider cleanup is pending; repeat the request to finish cleanup.
 
 - Lifecycle locks do not expire automatically. A crashed operation or uncertain database write requires operator recovery after confirming the owning process has stopped. See [backend/ACCOUNT_LIFECYCLE.md](backend/ACCOUNT_LIFECYCLE.md).

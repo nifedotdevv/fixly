@@ -684,7 +684,7 @@ describe("Fixly API", () => {
         .set(bearer(adminToken))
         .expect(500);
       fault.mock.restore();
-      assert.equal(await User.findById(user._id), null);
+      assert.equal((await User.findById(user._id)).isDeleted, true);
       assert.notEqual(await Profile.findById(profile._id), null);
       await assertHidden(profile);
       await request(app)
@@ -727,6 +727,63 @@ describe("Fixly API", () => {
         .set(bearer(adminToken))
         .expect(404);
       assert.equal(await Profile.findById(profile._id), null);
+    });
+
+    it("rejects re-registration of a soft-deleted email within the recovery grace period", async () => {
+      const reuseEmail = `grace-period-${stamp}@fixly.test`;
+      await register({
+        firstName: "Grace",
+        lastName: "Period",
+        email: reuseEmail,
+        password: PASSWORD,
+        role: "house_owner",
+      }).expect(201);
+      const user = await User.findOne({ email: reuseEmail });
+      const session = await login(reuseEmail);
+      await request(app).delete("/api/v1/users/me")
+        .set(bearer(session.body.data.token)).send({ password: PASSWORD }).expect(200);
+
+      // Only authenticated ownership proof may reveal recovery options.
+      const conflict = await register({
+        firstName: "New",
+        lastName: "Owner",
+        email: reuseEmail,
+        password: PASSWORD,
+        previousPassword: PASSWORD,
+        role: "house_owner",
+      }).expect(409);
+      assert.match(conflict.body.message, /recovery grace period/i);
+      assert.equal(conflict.body.data.isDeactivated, true);
+      assert.ok(conflict.body.data.daysRemaining > 0);
+    });
+
+    it("allows re-registration of a soft-deleted email past the recovery grace period", async () => {
+      const expiredEmail = `expired-grace-${stamp}@fixly.test`;
+      await register({
+        firstName: "Expired",
+        lastName: "Grace",
+        email: expiredEmail,
+        password: PASSWORD,
+        role: "house_owner",
+      }).expect(201);
+      const user = await User.findOne({ email: expiredEmail });
+      // Soft-delete and backdate deletedAt to 35 days ago (past the default 30-day grace period)
+      const pastDate = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000);
+      await User.updateOne({ _id: user._id }, { isDeleted: true, deletedAt: pastDate, deletionReason: "self" });
+
+      // Registration now succeeds by purging the old abandoned record
+      const res = await register({
+        firstName: "Reborn",
+        lastName: "User",
+        email: expiredEmail,
+        password: PASSWORD,
+        previousPassword: PASSWORD,
+        role: "house_owner",
+      }).expect(201);
+      assert.equal(res.body.data.email, expiredEmail);
+      assert.equal(res.body.data.firstName, "Reborn");
+      // The new user has a different _id
+      assert.notEqual(res.body.data.id, user._id.toString());
     });
   });
 

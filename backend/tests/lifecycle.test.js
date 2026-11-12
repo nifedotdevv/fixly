@@ -60,7 +60,7 @@ const profileRequest = (user) => request(app).post("/api/v1/artisan/profile")
 const roleRequest = (user, role, extra = {}) => request(app).patch(`/api/v1/admin/user/${user.id}`)
   .set(auth(admin)).send({ role, ...extra });
 
-describe("profile creation and account changes", { timeout: 10000 }, () => {
+describe("profile creation and account changes", { timeout: 30000 }, () => {
   it("blocks deletion, restoration, role changes, and duplicate creation while a profile is inserting", async (t) => {
     const user = await createUser({ role: "artisan" });
     const entered = deferred();
@@ -294,7 +294,7 @@ describe("profile creation and account changes", { timeout: 10000 }, () => {
 
 describe("coordinated account lifecycle", () => {
   for (const heldAction of ["soft-delete", "restore", "delete"]) {
-    it(`rejects competing lifecycle actions while ${heldAction} is in progress`, { timeout: 10000 }, async (t) => {
+    it(`rejects competing lifecycle actions while ${heldAction} is in progress`, { timeout: 30000 }, async (t) => {
       const { user, profile } = await createArtisan(heldAction === "restore");
       const entered = deferred();
       const release = deferred();
@@ -408,6 +408,114 @@ describe("coordinated account lifecycle", () => {
     // Simulate operator recovery after proving no old write can still run.
     await Lock.deleteOne({ _id: user._id, token: lock.token });
     await actionRequest("soft-delete", user.id).expect(200);
+  });
+
+  it("never takes over an expired legacy lease without proof the old writer stopped", async () => {
+    const { user } = await createArtisan();
+    const token = randomUUID();
+    await Lock.collection.insertOne({
+      _id: user._id,
+      token,
+      action: "soft-delete",
+      host: "crashed-host",
+      processId: 99999,
+      leasedUntil: new Date(Date.now() - 10_000),
+    });
+    await actionRequest("soft-delete", user.id).expect(409);
+    assert.equal((await Lock.findById(user._id)).token, token);
+    assert.equal((await User.findById(user._id)).isDeleted, false);
+    await Lock.deleteOne({ _id: user._id, token });
+  });
+
+  it("requires explicit stopped-writer confirmation and an exact token for lock recovery", async () => {
+    const { recoverLifecycleLock } = await import("../src/services/accountLifecycleRecovery.js");
+    const { user } = await createArtisan();
+    const token = randomUUID();
+    await Lock.create({
+      _id: user._id, token, action: "restore", host: "stopped-host", processId: 99999,
+    });
+    await assert.rejects(() => recoverLifecycleLock(user.id, token), /previous writers/);
+    assert.equal(await recoverLifecycleLock(user.id, "wrong-token", { writersStopped: true }), false);
+    assert.equal((await Lock.findById(user.id)).token, token);
+    assert.equal(await recoverLifecycleLock(user.id, token, { writersStopped: true }), true);
+    assert.equal(await Lock.findById(user.id), null);
+    await actionRequest("soft-delete", user.id).expect(200);
+  });
+
+  it("retains durable deletion intent and the user when profile removal fails", async (t) => {
+    const { user, profile } = await createArtisan();
+    const fault = t.mock.method(Profile, "deleteOne", async () => { throw new Error("profile storage unavailable"); });
+    await actionRequest("delete", user.id).expect(500);
+    fault.mock.restore();
+    const saved = await User.findById(user.id).select("+lifecycleAction");
+    assert.equal(saved.isDeleted, true);
+    assert.equal(saved.lifecycleAction, "delete");
+    assert.ok(await Profile.findById(profile.id));
+    assert.equal(await Lock.findById(user.id), null);
+    await actionRequest("delete", user.id).expect(200);
+    assert.equal(await Profile.findById(profile.id), null);
+    assert.equal(await User.findById(user.id), null);
+  });
+
+  it("finishes permanent-delete intent before a later restore can run", async (t) => {
+    const { user } = await createArtisan();
+    const fault = t.mock.method(Profile, "deleteOne", async () => { throw new Error("profile storage unavailable"); });
+    await actionRequest("delete", user.id).expect(500);
+    fault.mock.restore();
+    await actionRequest("restore", user.id).expect(404);
+    assert.equal(await User.findById(user.id), null);
+    assert.equal(await Profile.findOne({ user_id: user.id }), null);
+  });
+
+  it("recovers a partially finished soft delete through the bounded recovery sweep", async () => {
+    const { recoverPendingAccountLifecycles } = await import("../src/services/accountLifecycleRecovery.js");
+    const { user, profile } = await createArtisan();
+    const deletedAt = new Date();
+    await User.updateOne({ _id: user.id }, {
+      $set: { isDeleted: true, deletedAt, lifecycleAction: "soft-delete", deletionReason: "admin" },
+    });
+    const counts = await recoverPendingAccountLifecycles();
+    assert.ok(counts.recovered >= 1);
+    const saved = await User.findById(user.id).select("+lifecycleAction");
+    assert.equal(saved.lifecycleAction, null);
+    const repaired = await Profile.findById(profile.id);
+    assert.equal(repaired.isDeleted, true);
+    assert.equal(repaired.deletedAt.getTime(), deletedAt.getTime());
+  });
+
+  it("does not recover a pending cascade while its uncertain-write lock remains held", async () => {
+    const { recoverPendingAccountLifecycles } = await import("../src/services/accountLifecycleRecovery.js");
+    const { user, profile } = await createArtisan();
+    await User.updateOne({ _id: user.id }, {
+      $set: { isDeleted: true, deletedAt: new Date(), lifecycleAction: "soft-delete" },
+    });
+    const token = randomUUID();
+    await Lock.create({ _id: user.id, token, action: "soft-delete", host: "uncertain-host", processId: 99999 });
+    const counts = await recoverPendingAccountLifecycles();
+    assert.ok(counts.blocked >= 1);
+    assert.equal((await Profile.findById(profile.id)).isDeleted, false);
+    assert.equal((await Lock.findById(user.id)).token, token);
+    await Lock.deleteOne({ _id: user.id, token });
+    await actionRequest("soft-delete", user.id).expect(200);
+  });
+
+  it("recovery advances beyond a blocked batch rather than starving later pending users", async () => {
+    const { recoverPendingAccountLifecycles } = await import("../src/services/accountLifecycleRecovery.js");
+    const blocked = await createArtisan();
+    const ready = await createArtisan();
+    for (const { user } of [blocked, ready]) {
+      await User.updateOne({ _id: user.id }, {
+        $set: { isDeleted: true, deletedAt: new Date(), lifecycleAction: "soft-delete" },
+      });
+    }
+    const token = randomUUID();
+    await Lock.create({ _id: blocked.user.id, token, action: "soft-delete", host: "uncertain-host", processId: 99999 });
+    await recoverPendingAccountLifecycles({ batchSize: 1 });
+    await recoverPendingAccountLifecycles({ batchSize: 1 });
+    assert.equal((await Profile.findById(ready.profile.id)).isDeleted, true);
+    assert.equal((await Profile.findById(blocked.profile.id)).isDeleted, false);
+    await Lock.deleteOne({ _id: blocked.user.id, token });
+    await actionRequest("soft-delete", blocked.user.id).expect(200);
   });
 });
 

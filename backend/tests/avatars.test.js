@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { randomUUID } from "node:crypto";
-import { after, describe, it } from "node:test";
+import { after, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
@@ -557,5 +557,109 @@ describe("avatar responses and account lifecycle", () => {
     await request(app).delete(`/api/v1/admin/user/${user.id}`).set(auth(admin)).expect(200);
     assert.equal(await User.findById(user._id), null);
     assert.equal(await Profile.findById(profile._id), null);
+  });
+
+  it("in-process avatar cleanup sweep processes queued images for accounts with pending cleanup", async (t) => {
+    const user = await createUser({
+      role: "house_owner",
+      avatarCleanup: ["sweep-orphan-1", "sweep-orphan-2"],
+    });
+    const storage = mockCloudinary(t);
+    const { runAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    const result = await runAvatarCleanupSweep();
+    assert.ok(result.processed >= 1);
+    assert.ok(result.cleaned >= 1);
+    assert.ok(storage.destroyed.includes("sweep-orphan-1"));
+    assert.ok(storage.destroyed.includes("sweep-orphan-2"));
+    const updated = await User.findById(user._id).select("+avatarCleanup");
+    assert.deepEqual(updated.avatarCleanup, []);
+  });
+});
+
+
+describe("coordinated avatar cleanup sweeps", () => {
+  beforeEach(async () => {
+    await User.updateMany({}, { $set: { avatarCleanup: [] } });
+  });
+
+  it("claims pending work atomically across simultaneous sweep instances", async (t) => {
+    const user = await createUser({ avatarCleanup: ["claim-once"] });
+    const entered = deferred();
+    const release = deferred();
+    let calls = 0;
+    t.mock.method(cloudinary.uploader, "destroy", async (id) => {
+      assert.equal(id, "claim-once");
+      calls++;
+      entered.resolve();
+      await release.promise;
+      return { result: "ok" };
+    });
+    const { runAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    const pending = runAvatarCleanupSweep();
+    try {
+      await entered.promise;
+      assert.deepEqual(await runAvatarCleanupSweep(), { processed: 0, cleaned: 0 });
+    } finally {
+      release.resolve();
+    }
+    assert.deepEqual(await pending, { processed: 1, cleaned: 1 });
+    assert.equal(calls, 1);
+    const saved = await User.findById(user.id).select("+avatarCleanupClaim +avatarCleanup");
+    assert.equal(saved.avatarCleanupClaim, null);
+    assert.deepEqual(saved.avatarCleanup, []);
+  });
+
+  it("backs off failed users so later batches can make progress", async (t) => {
+    const oldBatch = process.env.AVATAR_CLEANUP_BATCH_SIZE;
+    process.env.AVATAR_CLEANUP_BATCH_SIZE = "1";
+    t.after(() => oldBatch === undefined
+      ? delete process.env.AVATAR_CLEANUP_BATCH_SIZE : process.env.AVATAR_CLEANUP_BATCH_SIZE = oldBatch);
+    const failed = await createUser({ avatarCleanup: ["provider-failed"] });
+    const later = await createUser({ avatarCleanup: ["later-success"] });
+    t.mock.method(console, "error", () => {});
+    const destroyed = [];
+    t.mock.method(cloudinary.uploader, "destroy", async (id) => {
+      destroyed.push(id);
+      if (id === "provider-failed") throw new Error("temporary failure");
+      return { result: "ok" };
+    });
+    const { runAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    assert.deepEqual(await runAvatarCleanupSweep(), { processed: 1, cleaned: 0 });
+    assert.deepEqual(await runAvatarCleanupSweep(), { processed: 1, cleaned: 1 });
+    assert.deepEqual(destroyed, ["provider-failed", "later-success"]);
+    assert.deepEqual((await User.findById(failed.id).select("+avatarCleanup")).avatarCleanup, ["provider-failed"]);
+    assert.deepEqual((await User.findById(later.id).select("+avatarCleanup")).avatarCleanup, []);
+  });
+
+  it("reclaims expired cleanup claims while preserving active claims and current avatars", async (t) => {
+    await createUser({ avatarCleanup: ["expired-claim"], avatarCleanupClaim: "dead-worker", avatarCleanupClaimUntil: new Date(0) });
+    await createUser({ avatarCleanup: ["busy-worker"], avatarCleanupClaim: "live-worker", avatarCleanupClaimUntil: new Date(Date.now() + 60_000) });
+    await createUser({ avatar: avatar("current-image"), avatarCleanup: ["current-image", "obsolete-image"] });
+    const storage = mockCloudinary(t);
+    const { runAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    const result = await runAvatarCleanupSweep();
+    assert.equal(result.processed, 2);
+    assert.deepEqual(storage.destroyed.sort(), ["expired-claim", "obsolete-image"]);
+  });
+
+  it("does no provider work without credentials and disables scheduling during tests", async (t) => {
+    await createUser({ avatarCleanup: ["unconfigured-provider"] });
+    const secret = process.env.CLOUDINARY_API_SECRET;
+    delete process.env.CLOUDINARY_API_SECRET;
+    t.after(() => { process.env.CLOUDINARY_API_SECRET = secret; });
+    const storage = mockCloudinary(t);
+    const { runAvatarCleanupSweep, startAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    assert.deepEqual(await runAvatarCleanupSweep(), { processed: 0, cleaned: 0 });
+    await startAvatarCleanupSweep().stop();
+    assert.equal(storage.destroy.mock.callCount(), 0);
+  });
+
+  it("rejects invalid sweep configuration", async (t) => {
+    const previous = process.env.AVATAR_CLEANUP_BATCH_SIZE;
+    process.env.AVATAR_CLEANUP_BATCH_SIZE = "-1";
+    t.after(() => previous === undefined
+      ? delete process.env.AVATAR_CLEANUP_BATCH_SIZE : process.env.AVATAR_CLEANUP_BATCH_SIZE = previous);
+    const { runAvatarCleanupSweep } = await import("../src/services/avatarCleanupSweep.js");
+    await assert.rejects(runAvatarCleanupSweep, /positive integer/);
   });
 });

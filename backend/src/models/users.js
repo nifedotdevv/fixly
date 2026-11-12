@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
     password: {type: String, required: true, minlength: 10, maxlength: 100 },
     // Missing on legacy accounts, whose original password length is unknown.
     passwordByteLimit: { type: Number, enum: [72], select: false },
+    authVersion: { type: Number, default: 0, select: false },
     role: {
         type: String,
         required: true,
@@ -27,9 +28,14 @@ const userSchema = new mongoose.Schema({
     },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null },
+    deletionReason: { type: String, enum: ["self", "admin", null], default: null, select: false },
+    lifecycleAction: { type: String, enum: ["delete", "soft-delete", "restore", null], default: null, select: false, index: true },
     avatar: { type: avatarSchema, default: null },
     avatarVersion: { type: Number, default: 0, select: false },
     avatarCleanup: { type: [String], default: [], select: false },
+    avatarCleanupClaim: { type: String, default: null, select: false },
+    avatarCleanupClaimUntil: { type: Date, default: null, select: false },
+    avatarCleanupNextAttemptAt: { type: Date, default: null, select: false, index: true },
    
 },
 {

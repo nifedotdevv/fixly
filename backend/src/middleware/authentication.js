@@ -44,8 +44,8 @@ export const requireAuth = async (req, res, next) => {
       return unauthorized(res, "Invalid token");
     }
 
-    const user = await User.findById(decoded.id).select("-password +avatar.publicId +avatarVersion");
-    if (!user || user.isDeleted) {
+    const user = await User.findById(decoded.id).select("-password +avatar.publicId +avatarVersion +authVersion");
+    if (!user || user.isDeleted || (decoded.authVersion || 0) !== (user.authVersion || 0)) {
       return unauthorized(res, "User no longer exists or is deactivated");
     }
 
@@ -77,8 +77,8 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const user = await User.findById(decoded.id).select("-password");
-    if (user && !user.isDeleted) {
+    const user = await User.findById(decoded.id).select("-password +authVersion");
+    if (user && !user.isDeleted && (decoded.authVersion || 0) === (user.authVersion || 0)) {
       req.user = user;
     }
 
