@@ -383,9 +383,12 @@ describe("avatar API", () => {
     } });
     const results = await Promise.all([putImage(user), putImage(user)]);
     assert.deepEqual(results.map((res) => res.status).sort(), [201, 409]);
-    const saved = await User.findById(user._id).select("+avatar.publicId");
-    assert.equal(storage.destroyed.length, 1);
-    assert.notEqual(storage.destroyed[0], saved.avatar.publicId);
+    const saved = await User.findById(user._id).select("+avatar.publicId +avatarCleanup");
+    const losingId = storage.uploaded.find(({ publicId }) => publicId !== saved.avatar.publicId)?.publicId;
+    assert.ok(losingId);
+    // Both requests may retry the same idempotent cleanup concurrently.
+    assert.deepEqual([...new Set(storage.destroyed)], [losingId]);
+    assert.deepEqual(saved.avatarCleanup, []);
   });
 
   it("does not resurrect an avatar removed while a replacement is uploading", { timeout: 5000 }, async (t) => {
