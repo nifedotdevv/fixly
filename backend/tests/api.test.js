@@ -240,6 +240,20 @@ describe("Fixly API", () => {
         .send({ firstName: "Hacked" })
         .expect(403);
     });
+
+    it("returns 404 when updating a soft-deleted user", async () => {
+      const adminToken = (await login(`admin-${stamp}@fixly.test`, "Admin#Pass123")).body.data.token;
+      await User.updateOne({ _id: ownerId }, { $set: { isDeleted: true, deletedAt: new Date() } });
+      try {
+        await request(app)
+          .patch(`/api/v1/users/${ownerId}`)
+          .set(bearer(adminToken))
+          .send({ firstName: "Ghost" })
+          .expect(404);
+      } finally {
+        await User.updateOne({ _id: ownerId }, { $set: { isDeleted: false, deletedAt: null } });
+      }
+    });
   });
 
   describe("artisan profiles", () => {

@@ -6,11 +6,12 @@ The backend supports user accounts and artisan profiles. The frontend is current
 
 ## Features
 
-- User registration and login with JWT authentication.
+- User registration, login, and self-deleted account reactivation with JWT authentication.
 - Roles for homeowners (`house_owner`), artisans, and administrators.
 - Artisan profiles with profession, experience, contact details, and starting prices.
 - Browsing artisan profiles and updating owned profiles.
-- User account updates.
+- Service request and booking workflows between homeowners and artisans.
+- User account updates, profile pictures (avatars), and password-confirmed self-deletion.
 - Admin user management, including deletion, soft deletion, and restoration.
 
 ## Tech Stack
@@ -90,9 +91,10 @@ Open the local URL printed by Vite. To create a production build, run `npm run b
 
 | Base path | Purpose |
 | --- | --- |
-| `/api/v1/auth` | Register and log in |
+| `/api/v1/auth` | Register, log in, and reactivate self-deleted accounts |
 | `/api/v1/artisan` | Create, browse, and update artisan profiles |
-| `/api/v1/users` | Update your user account and manage your avatar |
+| `/api/v1/users` | Read, update, or self-delete your user account and manage your avatar |
+| `/api/v1/service-requests` | Create and manage homeowner-artisan service requests and bookings (see [backend/SERVICE_REQUESTS.md](backend/SERVICE_REQUESTS.md)) |
 | `/api/v1/admin` | Manage users as an administrator |
 | `/api/v1/uploads` | Retired general upload endpoint; authenticated requests return 410 |
 
@@ -137,7 +139,7 @@ The server saves the new image before removing the previous one. A failed databa
 
 Cloudinary public IDs, avatar revisions, and pending cleanup records remain internal. Login and admin responses include `avatar`, and public artisan responses include it under `user_id.avatar`. A missing picture is represented by `null`, allowing clients to display a default image. General image uploads are retired; avatar routes attach pictures to accounts and track their cleanup.
 
-Failed cleanup is retained on the account and retried during the next avatar change or permanent account deletion. Replacing a picture still succeeds if only the previous image's cleanup fails. Deleting a picture returns `503` if external cleanup is pending; the account already has `avatar: null`, and repeating DELETE finishes cleanup. If MongoDB is unavailable while an unattached upload needs cleanup, the server logs its public ID for recovery. There is no background cleanup worker.
+Failed cleanup is retained on the account and retried by a bounded background cleanup sweep as well as during the next avatar change or permanent account deletion. Replacing a picture still succeeds if only the previous image's cleanup fails. Deleting a picture returns `503` if external cleanup is pending; the account already has `avatar: null`, and repeating DELETE finishes cleanup. If MongoDB is unavailable while an unattached upload needs cleanup, the server logs its public ID for recovery.
 
 Soft deletion retains pictures for restoration. Permanent deletion first deactivates the account and removes its current and pending avatar images; if Cloudinary cleanup fails, it returns `503` and retains the deactivated account for retry.
 
@@ -150,3 +152,10 @@ New registrations require at least 10 password characters and at most 72 UTF-8 b
 Pagination accepts single safe-integer values only. Page defaults to 1 and cannot exceed 1,000,000; limit defaults to 20 and clamps to 1–100. Nonpositive page/limit values clamp to 1. Malformed or repeated pagination values return `400`. Artisan search accepts one string of at most 200 characters.
 
 The canonical API reference is [backend/ENDPOINT_AUDIT.md](backend/ENDPOINT_AUDIT.md).
+
+
+### Automated real-HTTP API scenarios
+
+From `backend/`, run `npm run test:api:all` to launch isolated localhost API servers and test realistic homeowner/artisan journeys without a frontend. Actors register and log in through HTTP; the harness owns a temporary MongoDB database and cleans up its own processes/data. `npm run test:api` runs fast checks, `npm run test:api:journeys` runs real-time booking flows, and `npm run test:api:defaults` optionally checks the normal 15-minute response minimum.
+
+See [API_SCENARIO_TESTING.md](backend/API_SCENARIO_TESTING.md) for safeguards, timing, coverage, reports, payment-simulation boundaries, and CI instructions. Existing deterministic regression tests remain available through `npm test`.

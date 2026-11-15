@@ -592,6 +592,17 @@ describe("booking and account lifecycle coordination", () => {
     });
   }
 
+  it("rejects service request creation when participant deletion recovery hits pending avatar cleanup", async () => {
+    const p = await pair();
+    await User.updateOne(
+      { _id: p.artisan.id },
+      { $set: { isDeleted: true, deletedAt: new Date(), lifecycleAction: "delete", avatarCleanup: ["fixly/avatars/pending-cleanup"] } },
+    );
+    await create(p).expect(400);
+    assert.equal(await Booking.countDocuments({ homeowner: p.homeowner.id }), 0);
+    assert.equal((await User.findById(p.artisan.id).select("+lifecycleAction")).lifecycleAction, "delete");
+  });
+
   it("honours a scheduling lock held by an independent MongoDB connection", async (t) => {
     const p = await pair(); const booking = await make(p);
     const connection = await mongoose.createConnection(process.env.MONGODB_URI_TEST || "mongodb://127.0.0.1:27017", { dbName: databaseName }).asPromise();

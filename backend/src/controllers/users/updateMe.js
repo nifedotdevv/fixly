@@ -38,8 +38,8 @@ export const updateMe = async (req, res) => {
       });
     }
 
-    const user = await User.findByIdAndUpdate(id, updates, {
-      new: true,
+    const user = await User.findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, updates, {
+      returnDocument: "after",
       runValidators: true,
     }).select("-password");
 
