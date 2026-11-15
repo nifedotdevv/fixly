@@ -1,0 +1,70 @@
+name: Backend API scenarios
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-api-scenarios.yml'
+  push:
+    branches: [main, backend/fix]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-api-scenarios.yml'
+  workflow_dispatch:
+    inputs:
+      include_defaults:
+        description: 'Also run the real 15-minute default timing journey'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '23 2 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping: 1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      FIXLY_SCENARIO_MONGO_URI: mongodb://127.0.0.1:27017
+      MONGODB_URI_TEST: mongodb://127.0.0.1:27017
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Existing regression and harness safety tests
+        run: npm test
+      - name: Real HTTP scenarios and complete journeys
+        run: npm run test:api:all
+      - name: Production-default real-time journey
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.include_defaults)
+        run: npm run test:api:defaults
+      - name: Upload redacted scenario reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: api-scenario-reports
+          path: backend/artifacts/api-scenarios/*.json
+          if-no-files-found: ignore
+          retention-days: 7

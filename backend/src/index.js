@@ -6,6 +6,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
+import { pathToFileURL } from "node:url";
 import { connectDB } from "./config/dbConnection.js";
 import { configureCloudinary } from "./config/cloudinary.js";
 import { recoverPendingAccountLifecycles } from "./services/accountLifecycleRecovery.js";
@@ -100,48 +101,61 @@ app.use((error, req, res, next) => {
 });
 
 
-const PORT = process.env.PORT || 5000;
-const start = async () => {
-    if (!process.env.JWT_SECRET) {
-        console.error("JWT_SECRET is missing in environment");
-        process.exit(1);
-    }
+// Importing the app is side-effect free; direct execution retains normal startup.
+export const startServer = async ({ host, port = Number(process.env.PORT || 5000) } = {}) => {
+    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is missing in environment");
     if (!process.env.MONGODB_URI && !process.env.MONGO_URI) {
-        console.error("MONGODB_URI (or MONGO_URI) is missing in environment");
-        process.exit(1);
+        throw new Error("MONGODB_URI (or MONGO_URI) is missing in environment");
     }
-    await connectDB(); // Connect to MongoDB before accepting traffic
-    if (!configureCloudinary()) {
-        console.warn("Cloudinary not configured - upload endpoints will return 503");
-    }
-    // Read configuration after dotenv has loaded, before accepting traffic.
-    positiveInteger("SOFT_DELETE_GRACE_DAYS", 30, 3650);
-    const recoveryInterval = positiveInteger("LIFECYCLE_RECOVERY_INTERVAL_MS", 60_000, 86_400_000);
-    const jobs = [
-        startAvatarCleanupSweep(),
-        startBackgroundTask(recoverPendingAccountLifecycles, recoveryInterval, { runImmediately: true }),
-    ];
-    const server = app.listen(PORT, () => {
-        console.log(`Server is running on ${PORT}`);
-    });
-    let stopping = false;
-    const shutdown = async () => {
-        if (stopping) return;
-        stopping = true;
-        const closed = new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-        await Promise.all([closed, ...jobs.map((job) => job.stop())]);
-        await mongoose.disconnect();
-    };
-    for (const signal of ["SIGTERM", "SIGINT"]) {
-        process.once(signal, () => shutdown().catch((error) => {
-            console.error("Shutdown failed:", error.name);
-            process.exitCode = 1;
-        }));
+    const jobs = [];
+    let server;
+    let shutdownPromise;
+    const shutdown = () => shutdownPromise ||= (async () => {
+        const closed = server?.listening
+            ? new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+            : Promise.resolve();
+        try {
+            await Promise.all([closed, ...jobs.map((job) => job.stop())]);
+        } finally {
+            await mongoose.disconnect();
+        }
+    })();
+    try {
+        await connectDB();
+        await Promise.all(mongoose.modelNames().map((name) => mongoose.model(name).init()));
+        if (!configureCloudinary()) console.warn("Cloudinary not configured - upload endpoints will return 503");
+        positiveInteger("SOFT_DELETE_GRACE_DAYS", 30, 3650);
+        const recoveryInterval = positiveInteger("LIFECYCLE_RECOVERY_INTERVAL_MS", 60_000, 86_400_000);
+        jobs.push(startAvatarCleanupSweep());
+        jobs.push(startBackgroundTask(recoverPendingAccountLifecycles, recoveryInterval, { runImmediately: true }));
+        await new Promise((resolve, reject) => {
+            server = app.listen({ host, port });
+            server.once("error", reject);
+            server.once("listening", () => {
+                server.off("error", reject);
+                resolve();
+            });
+        });
+        return { server, shutdown, address: server.address() };
+    } catch (error) {
+        await shutdown();
+        throw error;
     }
 };
 
-if (process.env.NODE_ENV !== "test") {
-    start();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href && process.env.NODE_ENV !== "test") {
+    startServer().then(({ address, shutdown }) => {
+        console.log(`Server is running on ${address.port}`);
+        for (const signal of ["SIGTERM", "SIGINT"]) {
+            process.once(signal, () => shutdown().catch((error) => {
+                console.error("Shutdown failed:", error.name);
+                process.exitCode = 1;
+            }));
+        }
+    }).catch((error) => {
+        console.error("Server startup failed:", error.name);
+        process.exitCode = 1;
+    });
 }
 
 export default app;

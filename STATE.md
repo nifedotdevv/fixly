@@ -35,7 +35,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Generic login failures without internal messages in responses or sensitive details in logs
 - [x] Authenticated GET/PUT/DELETE /api/v1/users/me/avatar for every role, 5MB image limit, per-account upload limits, and 512x512 WEBP conversion
 - [x] Private avatar metadata and revision guards, queued cleanup retries, public avatar URLs, and image cleanup on permanent account deletion
-- [x] Backend regression suite: 177 tests covering account recovery, concurrent creation, avatar workers/changes, multipart limits, lifecycle conflicts/retries, booking/payment boundaries, and separate personal/professional reads
+- [x] Backend regression suite: 191 tests covering account recovery, concurrent creation, avatar workers/changes, multipart limits, lifecycle conflicts/retries, booking/payment boundaries, and separate personal/professional reads
 - [x] Patched body-parser to 2.4.0; bounded password bytes for new accounts and validated list queries
 - [x] GET /api/v1/users/me and GET /api/v1/artisan/profile/me preserve separate account/professional views
 - [x] Shared MongoDB lifecycle coordinator rejects concurrent delete/soft-delete/restore operations with 409
@@ -43,6 +43,10 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Background avatar cleanup with atomic claims, retry scheduling, non-overlapping passes, and graceful shutdown
 - [x] Password-confirmed self deletion/reactivation and credential-verified fresh registration after a configurable recovery window; admin restrictions retained
 - [x] Session revocation on self/admin soft deletion; old JWTs remain invalid after restore
+
+- [x] Real-process HTTP scenario harness with isolated databases, real API actor setup, guarded payment simulation, reports, and cleanup safety checks
+- [x] Fast and timed API tiers: 29 combined scenarios cover all 15 service-request routes, cross-process scheduling, payment events, and complete booking journeys
+- [x] Optional default-timing API journey and a GitHub Actions workflow for regressions, HTTP scenarios, and redacted reports
 
 ## What Is Next
 - [ ] Review existing administrator memberships and previously supplied ratings; no automatic data cleanup was performed

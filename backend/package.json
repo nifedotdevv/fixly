@@ -7,7 +7,11 @@
     "test": "node --test tests/*.test.js",
     "lifecycle:inspect": "node scripts/recoverLifecycleLock.js",
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "test:api": "node scripts/run-api-scenarios.js --tier fast",
+    "test:api:journeys": "node scripts/run-api-scenarios.js --tier journeys",
+    "test:api:defaults": "node scripts/run-api-scenarios.js --tier defaults",
+    "test:api:all": "node scripts/run-api-scenarios.js --tier all"
   },
   "keywords": [],
   "author": "",

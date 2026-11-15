@@ -4,3 +4,6 @@ node_modules/
 dist/
 /local docs folder - never pushed
 /docs/
+
+# Generated API scenario reports (never commit credentials or run artifacts)
+/backend/artifacts/

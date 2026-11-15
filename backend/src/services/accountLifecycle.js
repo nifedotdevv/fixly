@@ -14,6 +14,8 @@ const result = (statusCode, message, id) => ({
   ...(id === undefined ? {} : { data: { id } }),
 });
 
+const LIFECYCLE_ACTIONS = new Set(["delete", "soft-delete", "restore", "restart"]);
+
 // Locks deliberately do not expire: a paused writer can outlive any lease.
 // Callers must read account invariants only after acquiring this shared lock.
 export const runAccountLifecycle = async (id, action, operation) => {
@@ -31,7 +33,11 @@ export const runAccountLifecycle = async (id, action, operation) => {
   let retainLock = false;
   try {
     const recovered = await resumePendingAccountLifecycle(id);
-    if (recovered && (!recovered.response.success || (action === "delete" && recovered.action === "delete"))) {
+    if (
+      recovered &&
+      LIFECYCLE_ACTIONS.has(action) &&
+      (!recovered.response.success || (action === "delete" && recovered.action === "delete"))
+    ) {
       return recovered.response;
     }
     return await operation();
