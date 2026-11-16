@@ -19,7 +19,7 @@ const { default: Lock } = await import("../src/models/accountLifecycleLock.js");
 const { generateToken } = await import("../src/utils/jwt.js");
 const { applyVerifiedPayment } = await import("../src/services/requests/verifiedPayments.js");
 const { expireServiceRequests, splitQuote } = await import("../src/services/requests/rules.js");
-const { assertSimulationAllowed } = await import("../scripts/simulate-request-payment.js");
+const { assertSimulationAllowed, assertSimulationTarget } = await import("../scripts/simulate-request-payment.js");
 const databaseName = createTestDatabaseName();
 after(async () => {
   if (mongoose.connection.readyState !== 0) await cleanupTestDatabase(mongoose.connection, databaseName);
@@ -239,6 +239,12 @@ describe("verified payment boundary", () => {
     assert.throws(() => assertSimulationAllowed({ NODE_ENV: "development" }), /requires/);
     assert.throws(() => assertSimulationAllowed({ NODE_ENV: "production", ENABLE_PAYMENT_SIMULATION: "true" }), /requires/);
     assert.doesNotThrow(() => assertSimulationAllowed({ NODE_ENV: "test", ENABLE_PAYMENT_SIMULATION: "true" }));
+    assert.doesNotThrow(() => assertSimulationTarget("mongodb://127.0.0.1:27017/fixly-backend"));
+    assert.doesNotThrow(() => assertSimulationTarget("mongodb://localhost:27017/fixly-test"));
+    assert.doesNotThrow(() => assertSimulationTarget("mongodb://[::1]:27017/fixly-test"));
+    for (const target of ["", "mongodb+srv://cluster.example.net/fixly", "mongodb://db.example.com:27017/fixly", "https://127.0.0.1:27017"]) {
+      assert.throws(() => assertSimulationTarget(target), /local/i);
+    }
   });
 
   it("checks purpose, amount, currency and stage, and confirms only through verified events", async () => {

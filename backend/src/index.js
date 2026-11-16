@@ -11,6 +11,7 @@ import { connectDB } from "./config/dbConnection.js";
 import { configureCloudinary } from "./config/cloudinary.js";
 import { recoverPendingAccountLifecycles } from "./services/accountLifecycleRecovery.js";
 import { startAvatarCleanupSweep } from "./services/avatarCleanupSweep.js";
+import { expireServiceRequests } from "./services/requests/rules.js";
 import { startBackgroundTask } from "./services/backgroundTask.js";
 import { positiveInteger } from "./config/backgroundJobs.js";
 import authRoutes from "./routes/auth.js";
@@ -126,8 +127,10 @@ export const startServer = async ({ host, port = Number(process.env.PORT || 5000
         if (!configureCloudinary()) console.warn("Cloudinary not configured - upload endpoints will return 503");
         positiveInteger("SOFT_DELETE_GRACE_DAYS", 30, 3650);
         const recoveryInterval = positiveInteger("LIFECYCLE_RECOVERY_INTERVAL_MS", 60_000, 86_400_000);
+        const expiryInterval = positiveInteger("REQUEST_EXPIRY_SWEEP_INTERVAL_MS", 60_000, 86_400_000);
         jobs.push(startAvatarCleanupSweep());
         jobs.push(startBackgroundTask(recoverPendingAccountLifecycles, recoveryInterval, { runImmediately: true }));
+        jobs.push(startBackgroundTask(() => expireServiceRequests(), expiryInterval));
         await new Promise((resolve, reject) => {
             server = app.listen({ host, port });
             server.once("error", reject);

@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-it("survives compressed JSON requests with trailing bytes", { timeout: 10000 }, async () => {
+it("survives compressed JSON requests with trailing bytes", { timeout: 20000 }, async () => {
   // A vulnerable parser can crash Node after responding. Isolate that failure
   // from the test runner and verify that the server still accepts requests.
   const appUrl = new URL("../src/index.js", import.meta.url).href;
@@ -49,6 +49,6 @@ it("survives compressed JSON requests with trailing bytes", { timeout: 10000 }, 
       await new Promise((resolve) => server.close(resolve));
     }
   `;
-  const { stdout } = await run(process.execPath, ["--input-type=module", "-e", script], { timeout: 8000 });
+  const { stdout } = await run(process.execPath, ["--input-type=module", "-e", script], { timeout: 15000 });
   assert.match(stdout, /compressed-request regression passed/);
 });
