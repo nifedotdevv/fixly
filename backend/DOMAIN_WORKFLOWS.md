@@ -71,8 +71,24 @@ EMAIL_CHANGE_URL=http://localhost:5173/confirm-email-change
 
 Copy these values into `backend/.env`; keep credentials out of Git. SMTP requires TLS (implicit on port 465, STARTTLS otherwise). Production action URLs require HTTPS; development can use HTTP on localhost only. URLs must be configured, without embedded credentials, queries or fragments, and are never derived from request headers. The message adds `#token=...` to the configured URL. A future frontend reads that fragment and submits the token in JSON; the current Vite starter does not implement those pages. To test now, read the token from the Mailtrap message and POST it using an API client.
 
-Missing/invalid mail configuration returns `503` consistently before account lookup. Delivery failures during forgot-password return the same generic `200` as unknown addresses and invalidate the undelivered token; check provider delivery when troubleshooting. Email-change delivery failures return `503` without changing email. Live delivery still needs actual Mailtrap credentials and a manual round trip. Automated credential tests mock delivery and require no provider secrets.
+Missing/invalid mail configuration returns `503` consistently before account lookup. Delivery failures during forgot-password happen after the generic `200` is returned (same as unknown addresses) and invalidate the undelivered token; check provider delivery when troubleshooting. Email-change delivery failures return `503` without changing email. Live delivery still needs actual Mailtrap credentials and a manual round trip. Automated credential tests mock delivery and require no provider secrets.
 
-Forgot-password currently awaits SMTP for active accounts, so identical response bodies do not guarantee identical response timing. A durable asynchronous mail queue remains a future hardening option.
+Forgot-password sends its mail in a detached background task, so SMTP latency no longer separates known from unknown addresses and the response body and status are identical. Send failures are logged by error name only and the undelivered token is invalidated. Small database-timing differences for existing accounts remain, and mail in flight at process exit can be lost; a durable asynchronous mail queue remains a future hardening option.
 
 The generic SMTP adapter can later use a production email provider. Mailbox ownership is proved for reset/email change only; registration still does not verify emails.
+
+### Gmail SMTP alternative
+
+Gmail works with the same adapter and no code changes, but it delivers real mail (send only to inboxes you control) and caps sending at roughly 500 messages per day, so it suits development and demos rather than production. Enable 2-Step Verification on the account, create an App Password (Google Account → Security → App passwords) and use its 16 characters without spaces; the normal account password is rejected. `MAIL_FROM` must use the same Gmail address or Gmail rewrites the sender. New accounts may land in spam.
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-address@gmail.com
+SMTP_PASSWORD=your-app-password
+MAIL_FROM=Fixly <your-address@gmail.com>
+```
+
+### Checking the configuration
+
+`npm run mail:check` validates the mail settings and action URLs, then logs in to the SMTP server without sending anything. `npm run mail:check -- --to you@example.com` also sends one plain test message (no token). The script masks the username and never prints the password. Afterwards, confirm the real flow by calling `POST /api/v1/auth/forgot-password` for an account whose inbox you own.

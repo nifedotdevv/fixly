@@ -11,7 +11,8 @@
     "test:api": "node scripts/run-api-scenarios.js --tier fast",
     "test:api:journeys": "node scripts/run-api-scenarios.js --tier journeys",
     "test:api:defaults": "node scripts/run-api-scenarios.js --tier defaults",
-    "test:api:all": "node scripts/run-api-scenarios.js --tier all"
+    "test:api:all": "node scripts/run-api-scenarios.js --tier all",
+    "mail:check": "node scripts/check-mail.js"
   },
   "keywords": [],
   "author": "",

@@ -4,6 +4,7 @@ import User from "../models/users.js";
 import { runAccountLifecycle } from "./accountLifecycle.js";
 import { requireCondition } from "./requests/rules.js";
 import { credentialMail, mailSettings, actionUrl } from "./credentialMail.js";
+import { dispatchDetached, flushDetached } from "./backgroundTask.js";
 import { AccountLifecycleConflictError } from "../utils/errors.js";
 
 const digest = (token) => createHash("sha256").update(token).digest("hex");
@@ -31,6 +32,8 @@ const createToken = (user, email) => {
 };
 const configured = (purpose) => { mailSettings(); actionUrl(purpose); };
 
+export const flushPendingMail = flushDetached;
+
 export const forgotPassword = async ({ email }) => {
   // Check configuration before account lookup: a missing mail setup must not reveal account existence.
   configured("passwordReset");
@@ -42,11 +45,15 @@ export const forgotPassword = async ({ email }) => {
       if (!user) return;
       const { token, record } = createToken(user, email);
       await User.updateOne({ _id: user._id, isDeleted: { $ne: true } }, { $set: { passwordReset: record } });
-      try { await credentialMail.send({ to: email, purpose: "passwordReset", token }); }
-      catch {
-        // Suppress provider failures just like unknown addresses, and invalidate the undelivered token.
-        await User.updateOne({ _id: user._id, "passwordReset.hash": record.hash }, { $unset: { passwordReset: 1 } });
-      }
+      // Send in the background so SMTP latency cannot reveal that the account exists.
+      // A failure is logged by name only and the undelivered token is invalidated.
+      dispatchDetached(async () => {
+        try { await credentialMail.send({ to: email, purpose: "passwordReset", token }); }
+        catch (error) {
+          await User.updateOne({ _id: user._id, "passwordReset.hash": record.hash }, { $unset: { passwordReset: 1 } });
+          throw error;
+        }
+      }, "Password reset mail");
     });
   } catch (error) {
     // Contention cannot disclose that an account exists through a different forgot response.
