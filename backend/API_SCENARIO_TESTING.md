@@ -51,7 +51,7 @@ Fast checks (`F01`–`F15`, plus explicit concurrency/lock/payment variants) cov
 
 - Registration, real login JWTs, professional-profile creation, forbidden public admin registration, and wrong-password rejection.
 - Service-request creation, detail/list ownership, pagination, and public-directory privacy.
-- Missing/malformed authentication for all 15 service-request routes; wrong assigned participants and unrelated users/admins cannot act on requests.
+- Missing/malformed authentication for all 16 service-request routes; wrong assigned participants and unrelated users/admins cannot act on requests.
 - Spoofed ownership/status/payment fields, invalid dates/windows/deadlines/amounts/currencies/ids, and malformed pagination.
 - Pending clarification notes and immutable original request details.
 - Rejection, cancellation, reservation release, inspection-fee snapshots, and early/invalid-stage actions.
@@ -62,6 +62,7 @@ Fast checks (`F01`–`F15`, plus explicit concurrency/lock/payment variants) cov
 Real-time journeys (`J01`–`J09`) cover:
 
 - Complete inspection, immutable quote, verified 70% deposit, repair start/completion, homeowner confirmation, and final balance.
+- Completed-job homeowner review, immutable repeat rejection, public rating aggregate and completed-status history filtering.
 - Quote decline and unpaid repair cancellation while preserving paid inspection history.
 - Homeowner problem reporting and restrictions on normal finalization, payment, cancellation, and account deletion.
 - Response deadlines, inspection reservation expiry, quote expiry, and repair reservation expiry.
@@ -105,5 +106,7 @@ The runner prints each scenario's progress and exits nonzero on assertions, star
 
 
 ## Initial verified results
+
+Route B verification: **225/225 regression tests** and **29/29 configured HTTP scenarios** pass. The combined HTTP run completed in 155 seconds, covered success and access denial on all **16** service-request routes (including reviews), and completed cleanup. Credential tests mock SMTP; no Mailtrap credentials or live email were used.
 
 The implemented suite passed 188 regression/safety/report tests, 19 fast real-HTTP scenarios, and all 10 configured journey scenarios. The combined run passed all 29 scenarios in 222 seconds on the development machine under load, with positive and access-denied coverage for all 15 service-request routes. Its six owned helper/server processes exited successfully and cleanup completed. Runtime varies with CPU and MongoDB load; the budgets above are enforced independently of application workflow deadlines.

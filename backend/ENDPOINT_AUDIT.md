@@ -3,6 +3,8 @@
 Base URL: http://localhost:5000
 API prefix: /api/v1
 
+Route B additions (support administration, completed-booking reviews, effective status filters, password recovery and verified credential changes) are specified in [DOMAIN_WORKFLOWS.md](DOMAIN_WORKFLOWS.md). Support routes are separately admin-only; participant booking routes retain participant-only access. No live checkout or public mark-paid endpoint exists.
+
 Service requests, inspection/repair reservations, quotes, completion and the internal verified-payment boundary are documented in [SERVICE_REQUESTS.md](SERVICE_REQUESTS.md), including endpoint bodies and a Postman walkthrough. These participant-only routes are under `/api/v1/service-requests`; there is no admin booking bypass or public mark-paid endpoint. Unresolved booking obligations now block account deletion/soft deletion and incompatible role changes.
 
 ## Authentication
@@ -89,7 +91,7 @@ Personal and professional reads and edits remain separate. Account lifecycle act
 
 List pagination accepts single integer query values only. Missing page/limit default to 1/20; nonpositive values still clamp to 1 and limits above 100 clamp to 100. Repeated, malformed, or unsafe integers and pages above 1,000,000 return 400. Artisan search accepts one string of at most 200 characters; repeated search/profession/sortBy/order parameters return 400.
 
-Legacy accounts without passwordByteLimit retain their existing login behavior to avoid locking out users. Their original password length cannot be recovered from bcrypt hashes; resolving historical truncation requires a separate password reset/migration. Previously uploaded general images have no recorded ownership and require a separate Cloudinary inventory and cleanup. Retiring the endpoint prevents new untracked assets; it does not delete existing provider assets.
+Legacy accounts without passwordByteLimit retain their existing login behavior to avoid locking out users. Their original password length cannot be recovered from bcrypt hashes; they must use the new email password-reset flow before sensitive password/email changes. Previously uploaded general images have no recorded ownership and require a separate Cloudinary inventory and cleanup. Retiring the endpoint prevents new untracked assets; it does not delete existing provider assets.
 
 Avatar changes use a conditional user update and an internal revision counter to reject conflicting uploads or removals. Old-image cleanup is queued in the same user update that changes the avatar. A successful replacement is retained if only old-image cleanup fails; queued cleanup is retried on subsequent avatar changes and permanent account deletion. Soft deletion preserves avatar images. Cloudinary and MongoDB changes are not one atomic transaction, and queued cleanup is also retried by a bounded background sweep. If MongoDB is unavailable while recording an unattached upload, its public ID is logged for manual recovery.
 

@@ -147,11 +147,15 @@ Cloudinary configuration is checked for presence at startup. The configured clou
 
 ### Validation and legacy data
 
-New registrations require at least 10 password characters and at most 72 UTF-8 bytes, with uppercase, lowercase, and a digit. Login enforces the byte limit for new accounts; legacy accounts retain login compatibility until a separate password reset migration. Existing general uploads have no recorded owner and require a separate Cloudinary inventory and cleanup.
+New registrations require at least 10 password characters and at most 72 UTF-8 bytes, with uppercase, lowercase, and a digit. Login enforces the byte limit for new accounts; legacy accounts retain login compatibility and can migrate through email password reset. Legacy accounts must reset before sensitive email/password changes. Existing general uploads have no recorded owner and require a separate Cloudinary inventory and cleanup.
 
 Pagination accepts single safe-integer values only. Page defaults to 1 and cannot exceed 1,000,000; limit defaults to 20 and clamps to 1–100. Nonpositive page/limit values clamp to 1. Malformed or repeated pagination values return `400`. Artisan search accepts one string of at most 200 characters.
 
 The canonical API reference is [backend/ENDPOINT_AUDIT.md](backend/ENDPOINT_AUDIT.md).
+
+### Support, reviews and credential recovery
+
+Administrator support queues/resolutions, completed-job homeowner reviews with artisan rating summaries, service-request status filtering, password recovery and verified email/password changes are implemented. See [domain workflows and Mailtrap SMTP setup](backend/DOMAIN_WORKFLOWS.md) for endpoint bodies, session revocation and testing instructions. Real email delivery needs SMTP credentials; the frontend reset/confirmation pages remain unbuilt. Live checkout/webhooks, rescheduling and quote revisions are deferred.
 
 
 ### Automated real-HTTP API scenarios

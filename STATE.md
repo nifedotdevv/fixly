@@ -35,7 +35,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Generic login failures without internal messages in responses or sensitive details in logs
 - [x] Authenticated GET/PUT/DELETE /api/v1/users/me/avatar for every role, 5MB image limit, per-account upload limits, and 512x512 WEBP conversion
 - [x] Private avatar metadata and revision guards, queued cleanup retries, public avatar URLs, and image cleanup on permanent account deletion
-- [x] Backend regression suite: 191 tests covering account recovery, concurrent creation, avatar workers/changes, multipart limits, lifecycle conflicts/retries, booking/payment boundaries, and separate personal/professional reads
+- [x] Backend regression suite: 225 passing tests covering account recovery, concurrent creation, avatars, lifecycle/payment boundaries, support resolution, reviews, credential recovery and effective status filtering
 - [x] Patched body-parser to 2.4.0; bounded password bytes for new accounts and validated list queries
 - [x] GET /api/v1/users/me and GET /api/v1/artisan/profile/me preserve separate account/professional views
 - [x] Shared MongoDB lifecycle coordinator rejects concurrent delete/soft-delete/restore operations with 409
@@ -45,15 +45,19 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Session revocation on self/admin soft deletion; old JWTs remain invalid after restore
 
 - [x] Real-process HTTP scenario harness with isolated databases, real API actor setup, guarded payment simulation, reports, and cleanup safety checks
-- [x] Fast and timed API tiers: 29 combined scenarios cover all 15 service-request routes, cross-process scheduling, payment events, and complete booking journeys
+- [x] Fast and timed API tiers: 29 combined scenarios exercise booking journeys, cross-process scheduling and payment events; coverage expanded to all 16 service-request routes with completed-job review submission
 - [x] Optional default-timing API journey and a GitHub Actions workflow for regressions, HTTP scenarios, and redacted reports
 
+- [x] Route B domain workflows: admin problem/reconciliation resolution, immutable completed-job reviews and computed rating summaries, effective request-status filtering, and SMTP-backed credential recovery/update endpoints. See [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md).
+
 ## What Is Next
+- [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change delivery; automated tests mock transport
+- [ ] Live payment checkout and signed webhooks remain deferred; rescheduling/quote revisions need a separate versioning and reservation contract
 - [ ] Review existing administrator memberships and previously supplied ratings; no automatic data cleanup was performed
 - [ ] Adopt a replica set and transactions if atomic lifecycle changes become required
 - [ ] Configure valid Cloudinary credentials and verify a real upload; avatar tests currently mock provider calls
 - [ ] Frontend confirmation for destructive admin actions (deferred); backend last-admin guard remains absent by product direction
-- [ ] Password reset migration for legacy bcrypt accounts and inventory of historical untracked images
+- [ ] Encourage legacy bcrypt accounts to migrate through the new email reset flow; inventory historical untracked images
 - [ ] Build the product frontend and contact/hiring workflows; frontend currently remains a Vite starter
 
 ## Known Gotchas & Constraints
