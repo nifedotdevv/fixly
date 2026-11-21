@@ -59,7 +59,10 @@ export const expireServiceRequests = async (filter = {}, now = new Date()) => {
 export const assertNoBookingObligations = async (id) => {
   const [booking, payment] = await Promise.all([
     ServiceRequest.exists(unresolvedFilter(id)),
-    PaymentEvent.exists({ $or: [{ homeowner: id }, { artisan: id }], outcome: { $in: ["processing", "reconciliation_required"] } }),
+    PaymentEvent.exists({ $and: [
+      { $or: [{ homeowner: id }, { artisan: id }] },
+      { $or: [{ outcome: "processing" }, { outcome: "reconciliation_required", resolution: { $exists: false } }] },
+    ] }),
   ]);
   requireCondition(!booking && !payment,
     "Account has unresolved service requests or booking obligations. Resolve them before deletion or changing participation roles.");
@@ -85,7 +88,12 @@ export const requestView = (record, now = new Date()) => {
     cancelledAt: record.cancelledAt, expiredAt: effectiveExpiry ? atPath(record, effectiveExpiry.field) : record.expiredAt,
     workStartedAt: record.workStartedAt, artisanCompletedAt: record.artisanCompletedAt,
     homeownerConfirmedAt: record.homeownerConfirmedAt, problem: record.problem,
+    review: record.review,
     completedAt: record.completedAt, createdAt: record.createdAt, updatedAt: record.updatedAt,
+    supportClosedAt: record.supportClosedAt,
+    supportResolutions: (record.supportResolutions || []).map(({ disposition, resolvedAt, problemReportedAt }) => ({
+      disposition, resolvedAt, problemReportedAt,
+    })),
     payments: record.verifiedPayments.map(({ purpose, amount, currency, recordedAt }) => ({ purpose, amount, currency, recordedAt })),
   };
 };

@@ -35,6 +35,21 @@ const schema = new Schema({
   acceptedAt: Date, rejectedAt: Date, rejectionReason: String, cancelledAt: Date, expiredAt: Date,
   workStartedAt: Date, artisanCompletedAt: Date, homeownerConfirmedAt: Date, completedAt: Date,
   problem: new Schema({ explanation: { type: String, required: true }, reportedAt: { type: Date, required: true } }, options),
+  supportClosedAt: Date,
+  supportResolutions: { type: [new Schema({
+    disposition: { type: String, enum: ["resume_confirmation", "close"], required: true },
+    note: { type: String, required: true, maxlength: 2000 },
+    resolutionReference: { type: String, maxlength: 200 },
+    resolvedBy: { type: Schema.Types.ObjectId, required: true },
+    resolvedAt: { type: Date, required: true },
+    problemReportedAt: { type: Date, required: true },
+    problemExplanation: { type: String, required: true },
+  }, options)], default: [] },
+  review: new Schema({
+    rating: { type: Number, required: true, min: 1, max: 5, validate: Number.isInteger },
+    comment: { type: String, trim: true, maxlength: 2000, default: "" },
+    createdAt: { type: Date, required: true },
+  }, options),
   verifiedPayments: { type: [new Schema({
     purpose: { type: String, enum: PAYMENT_PURPOSES, required: true },
     externalReference: { type: String, required: true }, amount: minorUnits, currency,
@@ -43,6 +58,7 @@ const schema = new Schema({
 }, { timestamps: true, strict: "throw", optimisticConcurrency: true, read: "primary", writeConcern: { w: "majority" } });
 schema.index({ homeowner: 1, createdAt: -1, _id: -1 });
 schema.index({ artisan: 1, createdAt: -1, _id: -1 });
+schema.index({ artisan: 1, status: 1 });
 schema.index({ artisan: 1, "inspection.state": 1, "inspection.window.start": 1 });
 schema.index({ artisan: 1, "repair.state": 1, "repair.window.start": 1 });
 export default mongoose.model("ServiceRequest", schema);
