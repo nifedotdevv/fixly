@@ -15,7 +15,7 @@ const serviceBase = "/api/v1/service-requests";
 const serviceRoutes = [
   `POST ${serviceBase}`, `GET ${serviceBase}`, `GET ${serviceBase}/:id`,
   ...["notes", "accept", "reject", "cancel", "inspection/complete", "quote", "quote/approve", "quote/decline",
-    "repair/start", "repair/complete", "completion/confirm", "problems"].map((action) => `POST ${serviceBase}/:id/${action}`),
+    "repair/start", "repair/complete", "completion/confirm", "problems", "review"].map((action) => `POST ${serviceBase}/:id/${action}`),
 ];
 export const summarizeCoverage = (requests) => serviceRoutes.map((route) => {
   const calls = requests.filter((request) => `${request.method} ${request.path}` === route);

@@ -31,6 +31,10 @@ export const requestSchemas = {
     repairWindow: window.required(), expiresAt: timestamp.required(),
   }),
   problem: Joi.object({ explanation: Joi.string().trim().min(1).max(2000).required() }),
+  review: Joi.object({
+    rating: Joi.number().integer().min(1).max(5).strict().required(),
+    comment: Joi.string().trim().max(2000).allow("").default(""),
+  }),
   empty: Joi.object({}),
 };
 export const validateRequestBody = (name) => (req, res, next) => {
