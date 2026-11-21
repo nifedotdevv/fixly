@@ -7,6 +7,9 @@ import User from "../models/users.js";
 import rateLimit from "express-rate-limit";
 import { getAvatar, putAvatar, deleteAvatar } from "../controllers/users/avatar.js";
 import { uploadAvatar } from "../middleware/upload.js";
+import { changePasswordController, requestEmailChangeController } from "../controllers/auth/credentials.js";
+import { validateCredentials } from "../validation/credentials.js";
+import { credentialIpLimit, credentialAccountLimit } from "../middleware/credentialLimits.js";
 
 const router = express.Router();
 const requireSelf = requireOwnership({ model: User, ownerField: "_id" });
@@ -31,6 +34,8 @@ const avatarLimiter = rateLimit({
 });
 
 router.get("/me", requireAuth, getMe);
+router.patch("/me/password", requireAuth, credentialIpLimit, credentialAccountLimit, validateCredentials("password"), changePasswordController);
+router.post("/me/email-change", requireAuth, credentialIpLimit, credentialAccountLimit, validateCredentials("email"), requestEmailChangeController);
 router.delete("/me", requireAuth, deletionLimiter, deleteMe);
 router.get("/me/avatar", requireAuth, getAvatar);
 router.put("/me/avatar", requireAuth, avatarLimiter, uploadAvatar, putAvatar);
