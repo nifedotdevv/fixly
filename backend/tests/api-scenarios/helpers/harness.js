@@ -161,7 +161,18 @@ export const createHarness = async ({ timing = "configured", onRequest = () => {
     return index;
   };
 
-  const actor = async (role = "house_owner", { profile = true } = {}) => {
+  // No mail sink exists (only the token hash is stored), so verification is set directly in the run's own
+  // database, scoped to this actor's id and email, like the admin promotion below.
+  const markVerified = async (target) => {
+    guard();
+    await verify();
+    guard();
+    const changed = await connection.collection("users").updateOne(
+      { _id: new mongoose.Types.ObjectId(target.id), email: target.email }, { $set: { emailVerified: true } }, { maxTimeMS: 5000 });
+    assert.equal(changed.modifiedCount, 1);
+  };
+
+  const actor = async (role = "house_owner", { profile = true, verified = true } = {}) => {
     guard();
     if (!["house_owner", "artisan", "admin"].includes(role)) throw new Error("Invalid scenario actor role");
     const credentials = { email: `${randomUUID()}@fixly.test`, password: `ScenarioA1${randomBytes(16).toString("hex")}` };
@@ -177,6 +188,7 @@ export const createHarness = async ({ timing = "configured", onRequest = () => {
     const loggedIn = await request("POST", "/api/v1/auth/login", { body: credentials, status: 200 });
     const result = { id, role, ...credentials, token: loggedIn.body.data.token };
     actors.set(id, result);
+    if (verified) await markVerified(result);
     if (role === "artisan" && profile) {
       const professional = await request("POST", "/api/v1/artisan/profile", { actor: result, status: 201, body: {
         professional_headline: "Scenario experienced plumber", profession: "Plumber", experience_years: 3,
@@ -275,7 +287,7 @@ export const createHarness = async ({ timing = "configured", onRequest = () => {
     if (errors.length) throw new Error(`Scenario cleanup failed for ${databaseName}: ${errors.map((error) => error.message).join("; ")}`);
   })();
 
-  const h = { runId, databaseName, request, actor, pay, startServer, withLock, close, diagnostics, assertHealthy,
+  const h = { runId, databaseName, request, actor, markVerified, pay, startServer, withLock, close, diagnostics, assertHealthy,
     now: () => wallBase + performance.now() - monoBase,
     countPayments: async (requestId) => {
       guard(); await verify();
