@@ -1,5 +1,5 @@
 import User from "../../models/users.js";
-import { runAccountLifecycle, setAccountDeletionState } from "../../services/accountLifecycle.js";
+import { runAccountLifecycle, setAccountDeletionState, guardLastAdmin } from "../../services/accountLifecycle.js";
 import { verifiesPassword } from "../../services/accountRecoveryPolicy.js";
 import { handleMongooseError } from "../../utils/errors.js";
 
@@ -10,7 +10,7 @@ export const deleteMe = async (req, res) => {
       if (!user || user.isDeleted || !await verifiesPassword(user, req.body?.password)) {
         return { statusCode: 401, success: false, message: "Invalid email or password" };
       }
-      return setAccountDeletionState(user._id, true, { deletionReason: "self", invalidateSessions: true });
+      return guardLastAdmin(user._id, () => setAccountDeletionState(user._id, true, { deletionReason: "self", invalidateSessions: true }));
     });
     return res.status(response.statusCode).json(response);
   } catch (error) {

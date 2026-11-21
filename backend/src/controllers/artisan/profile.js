@@ -74,7 +74,6 @@ const createProfileForAccount = async (userId, body) => {
       professional_headline: newProfile.professional_headline,
       profession: newProfile.profession,
       experience_years: newProfile.experience_years,
-      rating: newProfile.rating,
       phone_number: newProfile.phone_number,
       starting_price: newProfile.starting_price,
       residential_address: newProfile.residential_address,

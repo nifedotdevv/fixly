@@ -334,7 +334,7 @@ describe("Fixly API", () => {
         .expect(201);
       profileId = res.body.data.id;
       assert.equal(res.body.data.user_id, user._id.toString());
-      assert.deepEqual(res.body.data.rating, []);
+      assert.equal("rating" in res.body.data, false);
       assert.equal(res.body.data.profession, "Plumber");
       await request(app)
         .post("/api/v1/artisan/profile")

@@ -95,6 +95,11 @@ export const changePassword = (actor, { currentPassword, password }) => runAccou
   }, { runValidators: true });
 });
 
+export const logoutAll = (actor) => runAccountLifecycle(actor._id, "credentials", async () => {
+  const user = await activeActor(actor);
+  await User.updateOne({ _id: user._id, isDeleted: { $ne: true } }, { $unset: clearTokens, $inc: { authVersion: 1 } });
+});
+
 export const requestEmailChange = (actor, { currentPassword, email }) => runAccountLifecycle(actor._id, "credentials", async () => {
   const user = await activeActor(actor);
   await checkPassword(user, currentPassword);

@@ -18,7 +18,7 @@ export const validateSettings = () => {
     for (const purpose of ["passwordReset", "emailChange"]) actionUrl(purpose);
     return { settings };
   } catch {
-    return { error: "Mail settings invalid: check SMTP_HOST, SMTP_PORT, SMTP_USER/SMTP_PASSWORD (both or neither), MAIL_FROM, PASSWORD_RESET_URL and EMAIL_CHANGE_URL." };
+    return { error: "Mail settings invalid: check SMTP_HOST, SMTP_PORT, SMTP_USER/SMTP_PASSWORD (both or neither), MAIL_FROM, PASSWORD_RESET_URL, EMAIL_CHANGE_URL and EMAIL_VERIFY_URL." };
   }
 };
 

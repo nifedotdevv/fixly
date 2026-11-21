@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import User from "../../models/users.js";
 import Profile from "../../models/artisanProfile.js";
-import { runAccountLifecycle } from "../../services/accountLifecycle.js";
+import { runAccountLifecycle, guardLastAdmin } from "../../services/accountLifecycle.js";
 import { handleMongooseError } from "../../utils/errors.js";
 import { assertNoBookingObligations } from "../../services/requests/rules.js";
 
@@ -88,9 +88,11 @@ export const updateUser = async (req, res) => {
     }
 
     const operation = () => updateAccount(id, updates);
+    const guarded = updates.role !== undefined && updates.role !== "admin"
+      ? () => guardLastAdmin(id, operation) : operation;
     const response = updates.role === undefined
       ? await operation()
-      : await runAccountLifecycle(id, "update-role", operation);
+      : await runAccountLifecycle(id, "update-role", guarded);
     return res.status(response.statusCode).json(response);
   } catch (error) {
     return handleMongooseError(res, error);

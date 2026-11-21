@@ -88,7 +88,7 @@ export const updateProfile = async (req, res) => {
       statusCode: 200,
       success: true,
       message: "Artisan profile updated successfully",
-      data: profile,
+      data: (({ rating: _legacy, ...rest }) => rest)(profile.toJSON()),
     });
   } catch (error) {
     return handleMongooseError(res, error);

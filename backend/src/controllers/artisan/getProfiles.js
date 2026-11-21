@@ -14,6 +14,9 @@ import {
 const canSeeUnlisted = (viewer, ownerId) => viewer && (viewer.role === "admin" || viewer._id.equals(ownerId));
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// The legacy rating array is not an API field; ratingSummary is computed from reviews.
+const withoutLegacyRating = ({ rating: _legacy, ...rest }) => rest;
+
 export const getMyProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ user_id: req.user._id, isDeleted: { $ne: true } });
@@ -24,7 +27,7 @@ export const getMyProfile = async (req, res) => {
       statusCode: 200,
       success: true,
       message: "Your artisan profile retrieved successfully",
-      data: { ...profile.toObject(), ratingSummary: (await ratingSummaries([profile.user_id])).get(profile.user_id.toString()) || emptyRatingSummary() },
+      data: { ...withoutLegacyRating(profile.toObject()), ratingSummary: (await ratingSummaries([profile.user_id])).get(profile.user_id.toString()) || emptyRatingSummary() },
     });
   } catch (error) {
     return handleMongooseError(res, error);
@@ -116,7 +119,7 @@ export const getProfiles = async (req, res) => {
             { $sort: { [sortField]: sortOrder, _id: sortOrder } },
             { $skip: skip },
             { $limit: limit },
-            { $project: { phone_number: 0, residential_address: 0, office_address: 0, __v: 0 } },
+            { $project: { phone_number: 0, residential_address: 0, office_address: 0, rating: 0, __v: 0 } },
             {
               $set: {
                 id: { $toString: "$_id" },
@@ -175,7 +178,7 @@ export const getProfileById = async (req, res) => {
       });
     }
 
-    const data = profile.toObject();
+    const data = withoutLegacyRating(profile.toObject());
     delete data.user_id.emailVerified;
     return res.status(200).json({
       statusCode: 200,

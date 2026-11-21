@@ -115,3 +115,25 @@ MAIL_FROM=Fixly <your-address@gmail.com>
 ### Checking the configuration
 
 `npm run mail:check` validates the mail settings and action URLs, then logs in to the SMTP server without sending anything. `npm run mail:check -- --to you@example.com` also sends one plain test message (no token). The script masks the username and never prints the password. Afterwards, confirm the real flow by calling `POST /api/v1/auth/forgot-password` for an account whose inbox you own.
+
+## Legacy data audit
+
+`npm run data:audit` prints a JSON report: admins (id, email, createdAt, isDeleted), profiles with a non-empty legacy `rating` array, and active accounts missing `passwordByteLimit` (legacy hashes, with a sub-count of non-bcrypt hashes). Hashes and tokens are never printed. It is a dry run unless told otherwise, and idempotent.
+
+- `npm run data:audit -- --apply ratings` sets `rating: []` where non-empty and reports matched/modified counts; a rerun reports 0.
+- `npm run data:audit -- --apply send-resets [--batch N]` calls `forgotPassword` for active, non-admin legacy accounts, then flushes pending mail. Output has counts only, no addresses. Requires the mail settings.
+- Admins have no write path in this script.
+- A non-local `MONGODB_URI` is refused unless `--remote --confirm-db <name>` matches the connected database name.
+
+## Sessions and last administrator
+
+- Tokens default to a 12h lifetime (`JWT_EXPIRES_IN`). `POST /api/v1/auth/logout-all` (authenticated) bumps `authVersion` and clears pending reset/email-change tokens, so every earlier token returns 401.
+- Demoting, soft-deleting or deleting the last active admin returns 409 `{ "code": "LAST_ADMIN" }`. Active admins serialize on one extra lifecycle lock (taken after the account lock), so two admins cannot remove each other concurrently. `DELETE /users/me` by the last active admin is guarded the same way (after password verification).
+
+## Frontend client contract
+
+- Keep the JWT in memory, mirrored to `sessionStorage` so a reload keeps the session.
+- On any 401, clear the token and navigate to `/login`.
+- On the legacy-account 409 ("Reset your password using your email address...") show a link to forgot-password.
+- The Vite dev proxy forwards `/api` to the backend; use relative `/api/v1/...` URLs.
+- Profile responses no longer include `rating`; use `ratingSummary`.
