@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { handleMongooseError } from "../../utils/errors.js";
-import { runAccountLifecycle, hardDeleteAccount, setAccountDeletionState } from "../../services/accountLifecycle.js";
+import { runAccountLifecycle, hardDeleteAccount, setAccountDeletionState, guardLastAdmin } from "../../services/accountLifecycle.js";
 
 const result = (statusCode, message, data) => ({
   statusCode,
@@ -23,9 +23,12 @@ const lifecycle = (action, operation) => async (req, res) => {
   }
 };
 
-export const deleteUser = lifecycle("delete", (id) => hardDeleteAccount(id));
+export const deleteUser = lifecycle("delete", (id) => guardLastAdmin(id, () => hardDeleteAccount(id)));
 const setDeletionState = (isDeleted) => lifecycle(isDeleted ? "soft-delete" : "restore",
-  (id) => setAccountDeletionState(id, isDeleted, { deletionReason: "admin" }));
+  (id) => {
+    const run = () => setAccountDeletionState(id, isDeleted, { deletionReason: "admin" });
+    return isDeleted ? guardLastAdmin(id, run) : run();
+  });
 
 export const softDeleteUser = setDeletionState(true);
 export const restoreUser = setDeletionState(false);

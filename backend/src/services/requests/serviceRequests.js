@@ -6,6 +6,8 @@ import { REQUEST_STATUS as S } from "../../constants/serviceRequests.js";
 import { runAccountLifecycles } from "../accountLifecycle.js";
 import { assertStage, effectiveStatus, expiryRules, requireCondition, requestConfig, requestView, splitQuote, validateWindow } from "./rules.js";
 import { reserve } from "./reservations.js";
+import { isArtisanBookable } from "../artisanVisibility.js";
+import { withParticipants } from "./participants.js";
 
 const dates = ({ start, end }) => ({ start: new Date(start), end: new Date(end) });
 export const loadRequest = async (id) => {
@@ -17,19 +19,24 @@ export const loadRequest = async (id) => {
 export const assertParticipant = (record, actorId) => {
   requireCondition([record.homeowner, record.artisan].some((id) => id.toString() === actorId.toString()), "Service request not found", 404);
 };
-export const assertEligibleParticipants = async (homeownerId, artisanId) => {
+export const assertEligibleParticipants = async (homeownerId, artisanId, { newBooking = false } = {}) => {
   const [homeowner, artisan, profile] = await Promise.all([
     User.findById(homeownerId).read("primary"), User.findById(artisanId).read("primary"),
     Profile.exists({ user_id: artisanId, isDeleted: { $ne: true } }).read("primary"),
   ]);
   requireCondition(homeowner && !homeowner.isDeleted && homeowner.role === "house_owner", "An active homeowner account is required", 403);
+  // A known artisan that the directory would not show cannot be booked by id either.
+  const profileAny = newBooking && artisan?.role === "artisan" && !profile && await Profile.exists({ user_id: artisanId }).read("primary");
+  if (newBooking && artisan?.role === "artisan" && (profile || profileAny)) {
+    requireCondition(await isArtisanBookable(artisanId), "This artisan is currently unavailable for new requests", 409, "ARTISAN_UNAVAILABLE");
+  }
   requireCondition(artisan && !artisan.isDeleted && artisan.role === "artisan" && profile, "The selected artisan is not eligible", 400);
 };
 export const createServiceRequest = async (homeownerId, input) => {
   requireCondition(mongoose.Types.ObjectId.isValid(input.artisan), "Invalid artisan id", 400);
   requireCondition(homeownerId.toString() !== input.artisan, "Self-booking is not permitted", 400);
   return runAccountLifecycles([homeownerId, input.artisan], "service-request", async () => {
-    await assertEligibleParticipants(homeownerId, input.artisan);
+    await assertEligibleParticipants(homeownerId, input.artisan, { newBooking: true });
     const now = new Date();
     const window = dates(input.inspectionWindow);
     validateWindow(window, now);
@@ -42,7 +49,7 @@ export const createServiceRequest = async (homeownerId, input) => {
       homeowner: homeownerId, artisan: input.artisan, description: input.description,
       serviceAddress: input.serviceAddress, inspectionWindow: window, responseDeadline: deadline,
     });
-    return requestView(record);
+    return (await withParticipants([requestView(record)]))[0];
   });
 };
 
@@ -62,7 +69,7 @@ const changeRequest = async (id, actorId, participant, operation) => {
     } : {}) };
     await operation(record, now);
     await record.save();
-    return requestView(record);
+    return (await withParticipants([requestView(record)]))[0];
   });
 };
 export const addClarification = (id, actorId, input) => changeRequest(id, actorId, "homeowner", (record, now) => {

@@ -53,11 +53,12 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 ## What Is Next
 - [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change delivery; automated tests mock transport
 - [ ] Live payment checkout and signed webhooks remain deferred; rescheduling/quote revisions need a separate versioning and reservation contract
-- [ ] Review existing administrator memberships and previously supplied ratings; no automatic data cleanup was performed
+- [x] Legacy data audit tooling (`npm run data:audit`, dry-run default; `--apply ratings`); running it against the real database remains an operator step
+- [x] Backend last-admin guard (409 `LAST_ADMIN`), `POST /auth/logout-all`, 12h default JWT lifetime, legacy `rating` array hidden from profile responses
 - [ ] Adopt a replica set and transactions if atomic lifecycle changes become required
 - [ ] Configure valid Cloudinary credentials and verify a real upload; avatar tests currently mock provider calls
-- [ ] Frontend confirmation for destructive admin actions (deferred); backend last-admin guard remains absent by product direction
-- [ ] Encourage legacy bcrypt accounts to migrate through the new email reset flow; inventory historical untracked images
+- [ ] Frontend confirmation for destructive admin actions (deferred); backend last-admin guard is in place
+- [ ] Send legacy bcrypt accounts the reset mail (`npm run data:audit -- --apply send-resets`, operator step); inventory historical untracked images
 - [ ] Build the product frontend and contact/hiring workflows; frontend currently remains a Vite starter
 
 ## Known Gotchas & Constraints

@@ -90,6 +90,15 @@ export const runFast = async (h) => {
     await h.request("POST", "/api/v1/artisan/profile", { actor: homeowner, body: {}, status: 403 });
   });
 
+  await h.scenario("F01b", "Unverified accounts cannot book until their email is verified", async () => {
+    const fresh = await h.actor("house_owner", { verified: false });
+    const target = await h.actor("artisan");
+    const denied = await h.request("POST", base, { actor: fresh, body: requestBody(target), status: 403 });
+    assert.equal(denied.body.code, "EMAIL_NOT_VERIFIED");
+    await h.markVerified(fresh);
+    await h.request("POST", base, { actor: fresh, body: requestBody(target), status: 201 });
+  });
+
   await h.scenario("F02", "Submit a private request and retrieve it through participant detail and paginated lists", async () => {
     original = await create();
     assert.equal(original.status, "pending");

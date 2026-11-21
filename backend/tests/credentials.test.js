@@ -124,8 +124,43 @@ describe("account credential recovery", () => {
     } finally { process.env.SMTP_HOST = host; }
     t.mock.method(credentialMail, "send", async () => { throw new Error("private provider credential"); });
     const result = await forgot(actor.email).expect(200);
+    await credentials.flushPendingMail();
     assert.equal(JSON.stringify(result.body).includes("private"), false);
     assert.equal((await pending(actor.id)).passwordReset, undefined);
+  });
+
+  it("does not wait for mail delivery and returns identical status and body for known and unknown emails", async (t) => {
+    const actor = await user();
+    let release; const gate = new Promise((resolve) => { release = resolve; });
+    t.mock.method(credentialMail, "send", async (message) => { await gate; sent.push(message); });
+    const known = await forgot(actor.email).expect(200);
+    const unknown = await forgot(`${randomUUID()}@fixly.test`).expect(200);
+    assert.equal(known.status, unknown.status);
+    assert.deepEqual(known.body, unknown.body);
+    assert.equal(sent.length, 0);
+    assert.ok((await pending(actor.id)).passwordReset);
+    release();
+    await credentials.flushPendingMail();
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].purpose, "passwordReset");
+    assert.equal(sent[0].to, actor.email);
+  });
+
+  it("logs a background mail failure by name only, without unhandled rejections, and keeps the response 200", async (t) => {
+    const actor = await user();
+    const rejections = []; const onRejection = (reason) => rejections.push(reason);
+    process.on("unhandledRejection", onRejection);
+    const logged = t.mock.method(console, "error", () => {});
+    t.mock.method(credentialMail, "send", async () => { throw new Error("secret-provider-detail"); });
+    try {
+      await forgot(actor.email).expect(200);
+      await credentials.flushPendingMail();
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally { process.off("unhandledRejection", onRejection); }
+    assert.deepEqual(rejections, []);
+    assert.equal((await pending(actor.id)).passwordReset, undefined);
+    assert.equal(logged.mock.calls.length, 1);
+    assert.equal(JSON.stringify(logged.mock.calls[0].arguments).includes("secret-provider-detail"), false);
   });
 
   it("validates new password strength, UTF-8 length and strict request fields", async () => {

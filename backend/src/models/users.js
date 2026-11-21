@@ -14,6 +14,7 @@ const credentialTokenSchema = new mongoose.Schema({
 const hideCredentials = (_document, value) => {
     delete value.passwordReset;
     delete value.emailChange;
+    delete value.emailVerification;
     return value;
 };
 
@@ -34,6 +35,9 @@ const userSchema = new mongoose.Schema({
     authVersion: { type: Number, default: 0, select: false },
     passwordReset: { type: credentialTokenSchema, select: false },
     emailChange: { type: credentialTokenSchema, select: false },
+    emailVerification: { type: credentialTokenSchema, select: false },
+    // No default on purpose: a missing value (legacy accounts) means verified. Only an explicit false is unverified.
+    emailVerified: { type: Boolean },
     role: {
         type: String,
         required: true,
@@ -63,6 +67,7 @@ const userSchema = new mongoose.Schema({
 // Token lookups need indexes, never TTL: expiry must not delete the owning account.
 userSchema.index({ "passwordReset.hash": 1 }, { sparse: true });
 userSchema.index({ "emailChange.hash": 1 }, { sparse: true });
+userSchema.index({ "emailVerification.hash": 1 }, { sparse: true });
 
 const User = mongoose.model("User", userSchema);
 export default User;

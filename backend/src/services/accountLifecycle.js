@@ -1,10 +1,11 @@
+import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import AccountLifecycleLock from "../models/accountLifecycleLock.js";
 import User from "../models/users.js";
 import Profile from "../models/artisanProfile.js";
 import { cleanupAvatarImages } from "./avatarImages.js";
-import { assertNoBookingObligations } from "./requests/rules.js";
+import { assertNoBookingObligations, requireCondition } from "./requests/rules.js";
 import { AccountLifecycleConflictError, isDuplicateKey } from "../utils/errors.js";
 
 const result = (statusCode, message, id) => ({
@@ -57,6 +58,21 @@ export const runAccountLifecycle = async (id, action, operation) => {
       }
     }
   }
+};
+
+// All admin-set changes serialize on one sentinel lock, always taken after the account lock,
+// so two admins cannot demote or delete each other concurrently and leave zero admins.
+const ADMIN_SET_LOCK_ID = new mongoose.Types.ObjectId("000000000000000000000001");
+// The caller holds the target's account lock, so its role cannot change underneath this check;
+// only active admins pay for the shared sentinel, so other accounts never contend on it.
+export const guardLastAdmin = async (id, operation) => {
+  const target = await User.findById(id).select("role isDeleted");
+  if (target?.role !== "admin" || target.isDeleted) return operation();
+  return runAccountLifecycle(ADMIN_SET_LOCK_ID, "update-role", async () => {
+    const others = await User.countDocuments({ role: "admin", isDeleted: { $ne: true }, _id: { $ne: target._id } });
+    requireCondition(others > 0, "This would leave no active administrator.", 409, "LAST_ADMIN");
+    return operation();
+  });
 };
 
 // Fixed ordering prevents cyclic acquisition; contention returns promptly with 409.

@@ -28,6 +28,9 @@ const stamp = Date.now();
 const register = (body) =>
   request(app).post("/api/v1/auth/register").send(body);
 
+// Registration now leaves accounts unverified; these legacy flows predate that and verify by data change.
+const verifyAll = () => User.updateMany({ emailVerified: false }, { emailVerified: true });
+
 const login = (email, password = PASSWORD) =>
   request(app).post("/api/v1/auth/login").send({ email, password });
 
@@ -331,7 +334,7 @@ describe("Fixly API", () => {
         .expect(201);
       profileId = res.body.data.id;
       assert.equal(res.body.data.user_id, user._id.toString());
-      assert.deepEqual(res.body.data.rating, []);
+      assert.equal("rating" in res.body.data, false);
       assert.equal(res.body.data.profession, "Plumber");
       await request(app)
         .post("/api/v1/artisan/profile")
@@ -341,6 +344,7 @@ describe("Fixly API", () => {
     });
 
     it("lists profiles publicly", async () => {
+      await verifyAll();
       const res = await request(app).get("/api/v1/artisan/profiles").expect(200);
       assert.equal(res.body.data.length, 1);
       assert.equal(res.body.data[0].user_id.firstName, "Ada");
@@ -487,6 +491,7 @@ describe("Fixly API", () => {
     };
 
     it("requires admin role", async () => {
+      await verifyAll();
       adminToken = (await login(`admin-${stamp}@fixly.test`, "Admin#Pass123")).body.data.token;
       technicianToken = (await login(`technician-${stamp}@fixly.test`)).body.data.token;
       await request(app).get("/api/v1/admin/users").expect(401);

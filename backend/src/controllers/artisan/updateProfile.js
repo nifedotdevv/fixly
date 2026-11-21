@@ -11,6 +11,10 @@ const UPDATABLE_FIELDS = [
   "starting_price",
   "residential_address",
   "office_address",
+  "skills",
+  "city",
+  "serviceAreas",
+  "isAvailable",
 ];
 
 const assertValidId = (id) => id && mongoose.Types.ObjectId.isValid(id);
@@ -84,7 +88,7 @@ export const updateProfile = async (req, res) => {
       statusCode: 200,
       success: true,
       message: "Artisan profile updated successfully",
-      data: profile,
+      data: (({ rating: _legacy, ...rest }) => rest)(profile.toJSON()),
     });
   } catch (error) {
     return handleMongooseError(res, error);

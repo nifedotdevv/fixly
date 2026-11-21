@@ -11,9 +11,15 @@ export const mailSettings = () => {
     ...(user ? { auth: { user, pass } } : {}), connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
     disableFileAccess: true, disableUrlAccess: true } };
 };
+const ACTION_URL_ENV = { passwordReset: "PASSWORD_RESET_URL", emailChange: "EMAIL_CHANGE_URL", emailVerification: "EMAIL_VERIFY_URL" };
+const COPY = {
+  passwordReset: ["Reset your Fixly password", "30 minutes"],
+  emailChange: ["Confirm your Fixly email change", "30 minutes"],
+  emailVerification: ["Verify your Fixly email address", "24 hours"],
+};
 export const actionUrl = (purpose) => {
   try {
-    const url = new URL(process.env[purpose === "passwordReset" ? "PASSWORD_RESET_URL" : "EMAIL_CHANGE_URL"]);
+    const url = new URL(process.env[ACTION_URL_ENV[purpose]]);
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if ((url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && local && url.protocol === "http:"))
       || url.username || url.password || url.search || url.hash) throw unavailable();
@@ -27,11 +33,11 @@ export const credentialMail = {
     const { from, transport } = mailSettings();
     const url = actionUrl(purpose);
     url.hash = new URLSearchParams({ token }).toString();
-    const subject = purpose === "passwordReset" ? "Reset your Fixly password" : "Confirm your Fixly email change";
+    const [subject, lifetime] = COPY[purpose];
     const client = nodemailer.createTransport(transport);
     try {
       const result = await client.sendMail({ from, to, subject,
-        text: `${subject}\n\nOpen this link within 30 minutes:\n${url.href}\n\nIf you did not request this, ignore this email.` });
+        text: `${subject}\n\nOpen this link within ${lifetime}:\n${url.href}\n\nIf you did not request this, ignore this email.` });
       if (!result.accepted?.length) throw unavailable();
     } catch { throw unavailable(); }
     finally { client.close(); }

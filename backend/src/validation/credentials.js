@@ -11,6 +11,7 @@ const schemas = {
   reset: Joi.object({ token, password, confirmPassword: Joi.string().valid(Joi.ref("password")) }),
   password: Joi.object({ currentPassword, password, confirmPassword: Joi.string().valid(Joi.ref("password")) }),
   email: Joi.object({ currentPassword, email }),
+  empty: Joi.object({}),
   confirmEmail: Joi.object({ token }),
 };
 export const validateCredentials = (kind) => (req, res, next) => {

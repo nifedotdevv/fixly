@@ -13,7 +13,7 @@
 - [x] Add homeowner rating and review submission for `completed` service requests and compute artisan rating aggregates
 - [x] Implement forgot-password/reset and verified self-service email/password update flows (including legacy bcrypt recovery)
 - [x] Add effective `status` filtering on `GET /api/v1/service-requests`
-- [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change messages (automated delivery is mocked)
+- [x] Configure SMTP (Gmail) and verify real reset/email-change delivery (`npm run mail:check -- --to <addr>` confirmed 2026-11-21; automated tests still mock mail)
 - [ ] Rescheduling / quote revisions deferred: define reservation, consent and payment invalidation/versioning rules first
 
 Route B contracts and Mailtrap setup: [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md). Live payment integration remains deferred.
