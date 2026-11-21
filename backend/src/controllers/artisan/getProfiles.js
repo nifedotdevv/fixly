@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import Profile from "../../models/artisanProfile.js";
 import User from "../../models/users.js";
 import { ratingSummaries, emptyRatingSummary } from "../../services/requests/reviews.js";
+import { visibleProfileFilter, visibleUserFilter } from "../../services/artisanVisibility.js";
+import { normalizeTerm } from "../../utils/searchTerms.js";
 import { PROFESSIONS } from "../../constants/professions.js";
 import { handleMongooseError, QueryValidationError } from "../../utils/errors.js";
 import {
@@ -9,6 +11,7 @@ import {
   paginationMeta,
 } from "../../utils/pagination.js";
 
+const canSeeUnlisted = (viewer, ownerId) => viewer && (viewer.role === "admin" || viewer._id.equals(ownerId));
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const getMyProfile = async (req, res) => {
@@ -32,7 +35,7 @@ export const getProfiles = async (req, res) => {
   try {
     const { limit, page, skip } = parsePagination(req.query);
 
-    for (const key of ["search", "profession", "sortBy", "order"]) {
+    for (const key of ["search", "profession", "sortBy", "order", "skill", "area", "available"]) {
       if (req.query[key] !== undefined && typeof req.query[key] !== "string") {
         throw new QueryValidationError(`${key} must be a single string`);
       }
@@ -41,7 +44,27 @@ export const getProfiles = async (req, res) => {
       throw new QueryValidationError("search must not exceed 200 characters");
     }
 
+    // Bracketed keys (skill[$ne]=x) are never operators here; reject them rather than silently ignoring a filter.
+    if (Object.keys(req.query).some((key) => /^(skill|area|available|profession)\[/.test(key))) {
+      throw new QueryValidationError("Filters must be single plain values");
+    }
+    for (const key of ["skill", "area"]) {
+      if (req.query[key]?.length > 60) throw new QueryValidationError(`${key} must not exceed 60 characters`);
+    }
+    if (req.query.available !== undefined && !["true", "false"].includes(req.query.available)) {
+      throw new QueryValidationError("available must be true or false");
+    }
+
+    // Same visibility rule as booking-by-id. available=false only narrows within the visible set.
     const filter = { isDeleted: { $ne: true } };
+    if (req.query.available === "true") Object.assign(filter, visibleProfileFilter());
+    else if (req.query.available === "false") filter.isAvailable = false;
+    // Exact, normalized value matches only: no regex or operators built from user input.
+    const skill = req.query.skill && normalizeTerm(req.query.skill);
+    const area = req.query.area && normalizeTerm(req.query.area);
+    if (skill) filter.skills = { $eq: skill };
+    const and = [];
+    if (area) and.push({ $or: [{ city: { $eq: area } }, { serviceAreas: { $eq: area } }] });
 
     if (req.query.profession) {
       if (!PROFESSIONS.includes(req.query.profession)) {
@@ -56,11 +79,14 @@ export const getProfiles = async (req, res) => {
 
     if (req.query.search) {
       const searchRegex = new RegExp(escapeRegExp(req.query.search.trim()), "i");
-      filter.$or = [
+      and.push({ $or: [
         { professional_headline: searchRegex },
         { profession: searchRegex },
-      ];
+        { skills: searchRegex },
+      ] });
     }
+
+    if (and.length) filter.$and = and;
 
     const sortField = ["createdAt", "experience_years", "starting_price"].includes(
       req.query.sortBy,
@@ -77,7 +103,7 @@ export const getProfiles = async (req, res) => {
           localField: "user_id",
           foreignField: "_id",
           pipeline: [
-            { $match: { role: "artisan", isDeleted: { $ne: true } } },
+            { $match: visibleUserFilter() },
             { $project: { firstName: 1, lastName: 1, role: 1, "avatar.url": 1 } },
           ],
           as: "user_id",
@@ -135,11 +161,13 @@ export const getProfileById = async (req, res) => {
       .select("-phone_number -residential_address -office_address -__v")
       .populate({
         path: "user_id",
-        select: "firstName lastName role avatar.url",
+        select: "firstName lastName role avatar.url emailVerified",
         match: { role: "artisan", isDeleted: { $ne: true } },
       });
 
-    if (!profile || profile.isDeleted || !profile.user_id) {
+    // Unverified artisans are hidden from everyone except themselves and admins.
+    const hidden = profile?.user_id?.emailVerified === false && !canSeeUnlisted(req.user, profile.user_id._id);
+    if (!profile || profile.isDeleted || !profile.user_id || hidden) {
       return res.status(404).json({
         statusCode: 404,
         success: false,
@@ -147,11 +175,13 @@ export const getProfileById = async (req, res) => {
       });
     }
 
+    const data = profile.toObject();
+    delete data.user_id.emailVerified;
     return res.status(200).json({
       statusCode: 200,
       success: true,
       message: "Artisan profile retrieved successfully",
-      data: { ...profile.toObject(), ratingSummary: (await ratingSummaries([profile.user_id._id])).get(profile.user_id._id.toString()) || emptyRatingSummary() },
+      data: { ...data, ratingSummary: (await ratingSummaries([profile.user_id._id])).get(profile.user_id._id.toString()) || emptyRatingSummary() },
     });
   } catch (error) {
     return handleMongooseError(res, error);

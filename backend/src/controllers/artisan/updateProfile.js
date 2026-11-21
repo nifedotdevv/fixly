@@ -11,6 +11,10 @@ const UPDATABLE_FIELDS = [
   "starting_price",
   "residential_address",
   "office_address",
+  "skills",
+  "city",
+  "serviceAreas",
+  "isAvailable",
 ];
 
 const assertValidId = (id) => id && mongoose.Types.ObjectId.isValid(id);

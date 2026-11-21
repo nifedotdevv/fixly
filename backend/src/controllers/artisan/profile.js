@@ -12,6 +12,10 @@ const createProfileForAccount = async (userId, body) => {
     starting_price,
     residential_address,
     office_address,
+    skills,
+    city,
+    serviceAreas,
+    isAvailable,
   } = body;
 
   const user = await User.findById(userId);
@@ -54,6 +58,10 @@ const createProfileForAccount = async (userId, body) => {
     starting_price,
     residential_address,
     office_address,
+    ...(skills !== undefined ? { skills } : {}),
+    ...(city !== undefined ? { city } : {}),
+    ...(serviceAreas !== undefined ? { serviceAreas } : {}),
+    ...(isAvailable !== undefined ? { isAvailable } : {}),
   });
 
   return {
@@ -71,6 +79,10 @@ const createProfileForAccount = async (userId, body) => {
       starting_price: newProfile.starting_price,
       residential_address: newProfile.residential_address,
       office_address: newProfile.office_address,
+      skills: newProfile.skills,
+      city: newProfile.city,
+      serviceAreas: newProfile.serviceAreas,
+      isAvailable: newProfile.isAvailable,
       createdAt: newProfile.createdAt,
       updatedAt: newProfile.updatedAt,
       personal_profile: {

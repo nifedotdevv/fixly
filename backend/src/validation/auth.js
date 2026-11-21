@@ -36,6 +36,14 @@ const loginValidationSchema = Joi.object({
 });
 
 //
+const searchTerm = (max) => Joi.string().trim().lowercase().min(2).max(max);
+const discoveryFields = {
+  skills: Joi.array().items(searchTerm(40)).max(10).unique(),
+  city: searchTerm(60),
+  serviceAreas: Joi.array().items(searchTerm(60)).max(20).unique(),
+  isAvailable: Joi.boolean(),
+};
+
 const profileCreateSchema = Joi.object({
   user_id: Joi.any().forbidden().messages({
     "any.unknown": "Profile ownership is determined by the authenticated user",
@@ -63,6 +71,7 @@ const profileCreateSchema = Joi.object({
   starting_price: Joi.number().min(0).required(),
   residential_address: Joi.string().trim().min(3).required(),
   office_address: Joi.string().trim().min(3).required(),
+  ...discoveryFields,
 });
 
 const profileUpdateSchema = Joi.object({
@@ -78,6 +87,7 @@ const profileUpdateSchema = Joi.object({
   starting_price: Joi.number().min(0),
   residential_address: Joi.string().trim().min(3),
   office_address: Joi.string().trim().min(3),
+  ...discoveryFields,
   user_id: Joi.any().forbidden().messages({
     "any.unknown": "user_id cannot be updated",
   }),

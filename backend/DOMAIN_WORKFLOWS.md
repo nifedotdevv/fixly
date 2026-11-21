@@ -55,6 +55,29 @@ Tokens are random, purpose-bound, stored as hidden SHA-256 hashes, expire after 
 
 Credential routes add a shared 10-request/15-minute IP limiter; authenticated changes also limit per account, and forgot-password limits each supplied address to five requests/15 minutes. Existing API/auth limiters also apply. Stores remain per API process, as with existing rate limiting.
 
+## Email verification
+
+- Registration creates the account with `emailVerified: false` and sends a verification mail in the background. A mail or configuration failure never fails registration; the dead token is cleared and the user can resend.
+- Token: 32 random bytes, only the SHA-256 hash is stored (`emailVerification`, never serialized), valid for **24 hours** (`EMAIL_VERIFICATION_TOKEN_MINUTES`; reset and email-change links stay at 30 minutes), bound to the account's current address. Link target comes from `EMAIL_VERIFY_URL`; the token is in the URL fragment.
+- `POST /api/v1/auth/verify-email {token}`: public, IP rate-limited, single use. Invalid, expired, replayed or stale (address changed) tokens all return the same 400. Sessions stay valid (no `authVersion` change).
+- `POST /api/v1/auth/resend-verification`: authenticated, IP and per-account rate limited. Replaces any earlier token. Already verified: 200 no-op. 503 if mail is not configured.
+- A confirmed email change marks the new address verified.
+- Unverified users can log in (`emailVerified` is returned by register, login and `/users/me`) but `POST /service-requests` returns `403 {code: "EMAIL_NOT_VERIFIED"}`.
+- **Grandfathering:** there is no migration and no schema default. A missing `emailVerified` (accounts created before this feature) counts as verified; only an explicit `false` is unverified. All checks use `emailVerified !== false` / `{ $ne: false }`.
+
+## Artisan discovery and booking visibility
+
+- Directory (`GET /artisan/profiles`) and by-id (`GET /artisan/profile/:id`) show only active artisans with a verified email and a non-deleted profile. The by-id route returns 404 for an unverified artisan except to the owner and admins.
+- The same rule gates booking: `POST /service-requests` for an artisan who is unverified, soft-deleted (user or profile) or `isAvailable: false` returns `409 {code: "ARTISAN_UNAVAILABLE"}`. Both paths use `src/services/artisanVisibility.js`. Unknown or non-artisan ids keep the existing 400. The directory still lists artisans with `isAvailable: false` (so a client can show them as away); `available=true` narrows to bookable profiles.
+- Profile fields added: `skills` (up to 10, 2-40 chars), `city` (up to 60), `serviceAreas` (up to 20, 2-60 chars), `isAvailable` (default true; missing on legacy profiles counts as available). All optional on create and update.
+- **Lowercased text:** skills, city and areas are trimmed, whitespace-collapsed and stored in lowercase so filters are exact matches without regex. API responses return them lowercase; the frontend should format them for display.
+- Query parameters: `profession`, `skill` (exact skill), `area` (exact city or served area), `available=true|false`, plus existing `search` (headline, profession, skills), `sortBy`, `order`, `page`, `limit` (default 20, max 100). Each must be a single plain string (max 60 chars for skill/area); bracketed or repeated forms such as `skill[$ne]=x` return 400. Values are normalized and compared with equality, never as regex or operators.
+- Indexes: `{isDeleted, profession, isAvailable, createdAt}`, `{skills}`, `{serviceAreas}`, `{city}`.
+
+## Participant details in service requests
+
+Request responses (list, get, create and every mutation including reviews) keep `homeowner` and `artisan` as ids and add `participants.homeowner` / `participants.artisan`, each `{id, firstName, lastName, name, avatar: {url} | null}`. The projection is explicit: no email, phone, role or any credential field of the other party. The artisan's phone and addresses are still never exposed here. Names stay visible for deactivated counterparts so history reads correctly; a missing account yields null names.
+
 ## Mailtrap development setup
 
 Create an Email Sandbox inbox and copy its SMTP username/password from its Integration tab. The host/port below follow [Mailtrap's SMTP setup](https://docs.mailtrap.io/email-sandbox/setup). Sandbox captures messages in Mailtrap; it does not deliver them to customers.

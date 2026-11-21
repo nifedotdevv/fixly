@@ -1,6 +1,7 @@
 import express from "express";
 import { createReview } from "../controllers/reviews.js";
 import { requireAuth } from "../middleware/authentication.js";
+import { requireVerifiedEmail } from "../middleware/requireVerifiedEmail.js";
 import { validateRequestBody as validate } from "../validation/serviceRequests.js";
 import { createRequestController, requestAction, getServiceRequest, listServiceRequests } from "../controllers/serviceRequests.js";
 import {
@@ -11,7 +12,7 @@ import {
 
 const router = express.Router();
 router.use(requireAuth);
-router.post("/", validate("create"), createRequestController(createServiceRequest));
+router.post("/", requireVerifiedEmail, validate("create"), createRequestController(createServiceRequest));
 router.get("/", listServiceRequests);
 router.get("/:id", getServiceRequest);
 router.post("/:id/notes", validate("note"), requestAction(addClarification));

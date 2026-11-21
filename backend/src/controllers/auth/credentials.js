@@ -1,4 +1,4 @@
-import { forgotPassword, resetPassword, changePassword, requestEmailChange, confirmEmailChange } from "../../services/credentials.js";
+import { forgotPassword, resetPassword, changePassword, requestEmailChange, confirmEmailChange, verifyEmail, resendVerification } from "../../services/credentials.js";
 import { handleMongooseError, AccountLifecycleConflictError } from "../../utils/errors.js";
 
 const action = (operation, message, authenticated = false) => async (req, res) => {
@@ -16,3 +16,5 @@ export const resetPasswordController = action(resetPassword, "Password reset. Si
 export const changePasswordController = action(changePassword, "Password changed. Sign in again.", true);
 export const requestEmailChangeController = action(requestEmailChange, "Check your new email address for a confirmation link.", true);
 export const confirmEmailChangeController = action(confirmEmailChange, "Email changed. Sign in with your new email address.");
+export const verifyEmailController = action(verifyEmail, "Email address verified.");
+export const resendVerificationController = action(resendVerification, "If your email is not yet verified, a new verification email will be sent.", true);

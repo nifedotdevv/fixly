@@ -1,6 +1,7 @@
 import ServiceRequest from "../../models/serviceRequest.js";
 import User from "../../models/users.js";
 import { runAccountLifecycles } from "../accountLifecycle.js";
+import { withParticipants } from "./participants.js";
 import { loadRequest, assertParticipant } from "./serviceRequests.js";
 import { requireCondition, requestView } from "./rules.js";
 import { REQUEST_STATUS as S } from "../../constants/serviceRequests.js";
@@ -20,7 +21,7 @@ export const submitReview = async (id, actor, input) => {
     requireCondition(!record.review, "This booking has already been reviewed");
     record.review = { rating: input.rating, comment: input.comment, createdAt: new Date() };
     await record.save();
-    return requestView(record);
+    return (await withParticipants([requestView(record)]))[0];
   });
 };
 

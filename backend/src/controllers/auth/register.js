@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import User from "../../models/users.js";
 import { handleMongooseError, isDuplicateKey } from "../../utils/errors.js";
 import { runAccountLifecycle, hardDeleteAccount } from "../../services/accountLifecycle.js";
+import { issueVerification } from "../../services/credentials.js";
 import { recoveryDeadline, verifiesPassword } from "../../services/accountRecoveryPolicy.js";
 
 const duplicate = () => ({
@@ -22,13 +23,14 @@ export const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 12);
         const createAccount = async () => {
             const user = await User.create({
-                firstName, lastName, email, password: hashedPassword, passwordByteLimit: 72, role,
+                firstName, lastName, email, password: hashedPassword, passwordByteLimit: 72, role, emailVerified: false,
             });
+            await issueVerification(user);
             return {
                 statusCode: 201, success: true, message: "User registered Successfully",
                 data: {
                     id: user._id, firstName: user.firstName, lastName: user.lastName,
-                    email: user.email, role: user.role, avatar: null,
+                    email: user.email, role: user.role, avatar: null, emailVerified: false,
                 },
             };
         };

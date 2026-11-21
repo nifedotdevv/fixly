@@ -3,12 +3,14 @@ import { handleMongooseError, QueryValidationError } from "../utils/errors.js";
 import { parsePagination, paginationMeta } from "../utils/pagination.js";
 import { requestView, expiryRules } from "../services/requests/rules.js";
 import { REQUEST_STATUS } from "../constants/serviceRequests.js";
+import { withParticipants } from "../services/requests/participants.js";
 import { assertParticipant, loadRequest } from "../services/requests/serviceRequests.js";
 
 const respond = (res, statusCode, data, message = "Service request updated successfully") =>
   res.status(statusCode).json({ statusCode, success: true, message, data });
 const failure = (res, error) => error.statusCode
-  ? res.status(error.statusCode).json({ statusCode: error.statusCode, success: false, message: error.message })
+  ? res.status(error.statusCode).json({ statusCode: error.statusCode, success: false, message: error.message,
+    ...(typeof error.code === "string" ? { code: error.code } : {}) })
   : handleMongooseError(res, error);
 export const requestAction = (operation, statusCode = 200) => async (req, res) => {
   try {
@@ -23,7 +25,7 @@ export const getServiceRequest = async (req, res) => {
   try {
     const record = await loadRequest(req.params.id);
     assertParticipant(record, req.user._id);
-    return respond(res, 200, requestView(record), "Service request retrieved successfully");
+    return respond(res, 200, (await withParticipants([requestView(record)]))[0], "Service request retrieved successfully");
   } catch (error) { return failure(res, error); }
 };
 export const listServiceRequests = async (req, res) => {
@@ -50,6 +52,6 @@ export const listServiceRequests = async (req, res) => {
       ServiceRequest.countDocuments(filter),
     ]);
     return res.status(200).json({ statusCode: 200, success: true, message: "Your service requests retrieved successfully",
-      data: records.map((record) => requestView(record, now)), meta: paginationMeta(total, page, limit) });
+      data: await withParticipants(records.map((record) => requestView(record, now))), meta: paginationMeta(total, page, limit) });
   } catch (error) { return failure(res, error); }
 };

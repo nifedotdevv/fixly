@@ -7,8 +7,11 @@ import { credentialMail, mailSettings, actionUrl } from "./credentialMail.js";
 import { dispatchDetached, flushDetached } from "./backgroundTask.js";
 import { AccountLifecycleConflictError } from "../utils/errors.js";
 
+// Credential links expire after 30 minutes; the email verification link is a longer-lived 24 hours.
+export const CREDENTIAL_TOKEN_MINUTES = 30;
+export const EMAIL_VERIFICATION_TOKEN_MINUTES = 24 * 60;
 const digest = (token) => createHash("sha256").update(token).digest("hex");
-const selected = "+authVersion +passwordByteLimit +passwordReset +emailChange +lifecycleAction";
+const selected = "+authVersion +passwordByteLimit +passwordReset +emailChange +emailVerification +lifecycleAction";
 const clearTokens = { passwordReset: 1, emailChange: 1 };
 const invalidToken = () => requireCondition(false, "This link is invalid or expired. Request a new one.", 400);
 const activeActor = async (actor) => {
@@ -25,9 +28,9 @@ const checkPassword = async (user, password) => {
   requireCondition(!bcrypt.truncates(password) && await bcrypt.compare(password, user.password),
     "Current password is incorrect", 401);
 };
-const createToken = (user, email) => {
+const createToken = (user, email, minutes = CREDENTIAL_TOKEN_MINUTES) => {
   const token = randomBytes(32).toString("hex");
-  return { token, record: { hash: digest(token), expiresAt: new Date(Date.now() + 30 * 60000),
+  return { token, record: { hash: digest(token), expiresAt: new Date(Date.now() + minutes * 60000),
     authVersion: user.authVersion || 0, email } };
 };
 const configured = (purpose) => { mailSettings(); actionUrl(purpose); };
@@ -109,5 +112,49 @@ export const requestEmailChange = (actor, { currentPassword, email }) => runAcco
 
 export const confirmEmailChange = ({ token }) => consume("emailChange", token, async (_user, record) => {
   requireCondition(!await User.exists({ email: record.email }), "Email address is unavailable", 409);
-  return { email: record.email };
+  // Proof of control of the new mailbox also verifies it; a pending verification link for the old address is void.
+  return { email: record.email, emailVerified: true };
 });
+
+const sendVerificationMail = (user, token, record) => dispatchDetached(async () => {
+  try { await credentialMail.send({ to: record.email, purpose: "emailVerification", token }); }
+  catch (error) {
+    await User.updateOne({ _id: user._id, "emailVerification.hash": record.hash }, { $unset: { emailVerification: 1 } });
+    throw error;
+  }
+}, "Email verification mail");
+
+// Called by registration after the account exists. Never throws: delivery problems must not fail sign-up.
+export const issueVerification = async (user) => {
+  try {
+    const { token, record } = createToken({ authVersion: 0 }, user.email, EMAIL_VERIFICATION_TOKEN_MINUTES);
+    await User.updateOne({ _id: user._id }, { $set: { emailVerification: record } });
+    sendVerificationMail(user, token, record);
+  } catch (error) { console.error("Email verification issue failed:", error?.name); }
+};
+
+export const resendVerification = (actor) => runAccountLifecycle(actor._id, "credentials", async () => {
+  const user = await activeActor(actor);
+  if (user.emailVerified !== false) return;
+  configured("emailVerification");
+  const { token, record } = createToken(user, user.email, EMAIL_VERIFICATION_TOKEN_MINUTES);
+  await User.updateOne({ _id: user._id, isDeleted: { $ne: true } }, { $set: { emailVerification: record } });
+  sendVerificationMail(user, token, record);
+});
+
+export const verifyEmail = async ({ token }) => {
+  const hash = digest(token);
+  const initial = await User.findOne({ "emailVerification.hash": hash, isDeleted: { $ne: true } }).select("_id");
+  if (!initial) return invalidToken();
+  return runAccountLifecycle(initial._id, "credentials", async () => {
+    const user = await User.findById(initial._id).select(selected);
+    const record = user?.emailVerification;
+    if (!user || user.isDeleted || !record || record.hash !== hash || record.expiresAt <= new Date()
+      || record.email !== user.email) return invalidToken();
+    // Single use and DB-clock expiry enforced in the write itself. Sessions stay valid (no authVersion bump).
+    const updated = await User.updateOne({ _id: user._id, isDeleted: { $ne: true }, "emailVerification.hash": hash,
+      email: record.email, $expr: { $gt: ["$emailVerification.expiresAt", "$$NOW"] } },
+    { $set: { emailVerified: true }, $unset: { emailVerification: 1 } });
+    if (!updated.matchedCount) return invalidToken();
+  });
+};

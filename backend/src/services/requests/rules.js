@@ -3,10 +3,10 @@ import ServiceRequest from "../../models/serviceRequest.js";
 import PaymentEvent from "../../models/paymentEvent.js";
 
 export class RequestError extends Error {
-  constructor(statusCode, message) { super(message); this.statusCode = statusCode; }
+  constructor(statusCode, message, code) { super(message); this.statusCode = statusCode; if (code) this.code = code; }
 }
-export const requireCondition = (condition, message, statusCode = 409) => {
-  if (!condition) throw new RequestError(statusCode, message);
+export const requireCondition = (condition, message, statusCode = 409, code) => {
+  if (!condition) throw new RequestError(statusCode, message, code);
 };
 const positiveConfig = (name, fallback) => {
   const value = Number(process.env[name] ?? fallback);

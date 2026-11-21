@@ -10,6 +10,7 @@ export const getMe = (req, res) => {
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      emailVerified: user.emailVerified !== false,
       avatar: user.avatar ? { url: user.avatar.url } : null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

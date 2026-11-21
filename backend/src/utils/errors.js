@@ -16,7 +16,8 @@ export class AccountLifecycleConflictError extends Error {
 
 export const handleMongooseError = (res, error) => {
   if (error.statusCode && Number.isInteger(error.statusCode)) {
-    return res.status(error.statusCode).json({ statusCode: error.statusCode, success: false, message: error.message });
+    return res.status(error.statusCode).json({ statusCode: error.statusCode, success: false, message: error.message,
+      ...(typeof error.code === "string" ? { code: error.code } : {}) });
   }
   if (error.name === "VersionError") {
     return res.status(409).json({ statusCode: 409, success: false, message: "The request changed. Reload it and retry." });

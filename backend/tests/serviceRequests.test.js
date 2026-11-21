@@ -136,10 +136,10 @@ describe("service request submission and privacy", () => {
     await create({ ...p, artisan: await user() }).expect(400);
     await create({ ...p, artisan: await user("artisan") }).expect(400);
     await User.updateOne({ _id: p.artisan.id }, { isDeleted: true });
-    await create(p).expect(400);
+    await create(p).expect(409).expect((r) => assert.equal(r.body.code, "ARTISAN_UNAVAILABLE"));
     await User.updateOne({ _id: p.artisan.id }, { isDeleted: false });
     await Profile.updateOne({ user_id: p.artisan.id }, { isDeleted: true });
-    await create(p).expect(400);
+    await create(p).expect(409).expect((r) => assert.equal(r.body.code, "ARTISAN_UNAVAILABLE"));
     await Profile.updateOne({ user_id: p.artisan.id }, { isDeleted: false });
     const start = iso(24 * hour).replace("Z", "+00:00");
     const created = await create(p, { inspectionWindow: { start, end: iso(25 * hour) } }).expect(201);
@@ -604,7 +604,7 @@ describe("booking and account lifecycle coordination", () => {
       { _id: p.artisan.id },
       { $set: { isDeleted: true, deletedAt: new Date(), lifecycleAction: "delete", avatarCleanup: ["fixly/avatars/pending-cleanup"] } },
     );
-    await create(p).expect(400);
+    await create(p).expect(409);
     assert.equal(await Booking.countDocuments({ homeowner: p.homeowner.id }), 0);
     assert.equal((await User.findById(p.artisan.id).select("+lifecycleAction")).lifecycleAction, "delete");
   });
