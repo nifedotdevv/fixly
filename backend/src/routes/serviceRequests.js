@@ -1,4 +1,5 @@
 import express from "express";
+import { createReview } from "../controllers/reviews.js";
 import { requireAuth } from "../middleware/authentication.js";
 import { validateRequestBody as validate } from "../validation/serviceRequests.js";
 import { createRequestController, requestAction, getServiceRequest, listServiceRequests } from "../controllers/serviceRequests.js";
@@ -25,4 +26,5 @@ router.post("/:id/repair/start", validate("empty"), requestAction(startRepair));
 router.post("/:id/repair/complete", validate("empty"), requestAction(reportRepairCompletion));
 router.post("/:id/completion/confirm", validate("empty"), requestAction(confirmRepairCompletion));
 router.post("/:id/problems", validate("problem"), requestAction(reportProblem));
+router.post("/:id/review", validate("review"), createReview);
 export default router;

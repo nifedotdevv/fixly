@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Profile from "../../models/artisanProfile.js";
 import User from "../../models/users.js";
+import { ratingSummaries, emptyRatingSummary } from "../../services/requests/reviews.js";
 import { PROFESSIONS } from "../../constants/professions.js";
 import { handleMongooseError, QueryValidationError } from "../../utils/errors.js";
 import {
@@ -20,7 +21,7 @@ export const getMyProfile = async (req, res) => {
       statusCode: 200,
       success: true,
       message: "Your artisan profile retrieved successfully",
-      data: profile,
+      data: { ...profile.toObject(), ratingSummary: (await ratingSummaries([profile.user_id])).get(profile.user_id.toString()) || emptyRatingSummary() },
     });
   } catch (error) {
     return handleMongooseError(res, error);
@@ -103,6 +104,8 @@ export const getProfiles = async (req, res) => {
       },
     ]);
     const profiles = result.profiles;
+    const summaries = await ratingSummaries(profiles.map((profile) => profile.user_id._id));
+    for (const profile of profiles) profile.ratingSummary = summaries.get(profile.user_id._id.toString()) || emptyRatingSummary();
     const total = result.total[0]?.count || 0;
 
     return res.status(200).json({
@@ -148,7 +151,7 @@ export const getProfileById = async (req, res) => {
       statusCode: 200,
       success: true,
       message: "Artisan profile retrieved successfully",
-      data: profile,
+      data: { ...profile.toObject(), ratingSummary: (await ratingSummaries([profile.user_id._id])).get(profile.user_id._id.toString()) || emptyRatingSummary() },
     });
   } catch (error) {
     return handleMongooseError(res, error);

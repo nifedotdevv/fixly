@@ -2,6 +2,8 @@
 
 This milestone adds participant-only service requests, inspection reservations, immutable repair quotes and a verified-payment service boundary. It does not integrate a payment provider. Acceptance and quote approval are not payment. The backend records trusted verification events; it does not collect, hold, release or refund funds.
 
+Route B adds separately authorized admin support resolution, completed-booking reviews and effective status filtering. Full contracts are in [DOMAIN_WORKFLOWS.md](DOMAIN_WORKFLOWS.md).
+
 ## Models and access
 
 `ServiceRequest` stores immutable homeowner/artisan ObjectIds, original description, private service address, requested inspection window and response deadline. It also stores append-only clarification notes, booking stage and timestamps, an accepted inspection fee snapshot, separate embedded inspection/repair appointments, one quote, verified-event summaries and any reported problem. Related state changes are committed as a single document write with optimistic concurrency enabled.
@@ -29,7 +31,7 @@ All paths below are relative to `/api/v1/service-requests`; all require authenti
 | Method and path | Participant | Body / result |
 | --- | --- | --- |
 | `POST /` | Homeowner | Create the request; example below. Returns 201. |
-| `GET /?page=1&limit=20` | Either | Own participant requests, newest first; existing pagination bounds apply (maximum 100 per page). |
+| `GET /?page=1&limit=20&status=completed` | Either | Own participant requests, newest first; optional exact effective-status filter, maximum 100 per page. |
 | `GET /:id` | Either | Own request detail, including private address. |
 | `POST /:id/notes` | Homeowner | `{ "text": "The tap is upstairs" }`, pending only. Maximum 100 notes, 2000 characters each. |
 | `POST /:id/accept` | Assigned artisan | `{ "inspectionFee": { "amount": 250000, "currency": "NGN" } }` |
@@ -43,6 +45,7 @@ All paths below are relative to `/api/v1/service-requests`; all require authenti
 | `POST /:id/repair/complete` | Assigned artisan | Requires started work; awaits homeowner confirmation. |
 | `POST /:id/completion/confirm` | Homeowner | Acknowledges reported completion; makes final balance payable. |
 | `POST /:id/problems` | Homeowner | `{ "explanation": "The tap still leaks" }`, after reported completion. |
+| `POST /:id/review` | Homeowner | `{ "rating": 5, "comment": "Careful work" }`, once after `completed`; returns 201. |
 
 Create example (replace IDs/timestamps with eligible accounts and future values):
 
@@ -102,7 +105,7 @@ Booking progress is separate from appointment state (`reserved`, `confirmed`, `c
 
 Effective expiry uses the current server UTC time on every response, mutation, reservation check and account-obligation query, including at equality with the deadline. An unanswered request, unpaid reservation or submitted quote is expired even if its stored status has not been materialised yet. Deadline-dependent transitions also include a MongoDB `$$NOW` predicate on the atomic save: expiry during processing cannot turn into a late acceptance, approval or payment confirmation. Keep application/database clocks synchronised. Expired reservations do not block availability. Expiry never deletes history or revives an old acceptance.
 
-`expireServiceRequests(filter?, now?)` in `src/services/requests/rules.js` materialises expired statuses for maintenance/reporting using conditional atomic updates and runs on `REQUEST_EXPIRY_SWEEP_INTERVAL_MS` (default 60 seconds) via `startBackgroundTask`. Correctness does not depend on the sweep (reads and transitions compute effective expiry on demand). Its writes increment the request version, so a concurrently loaded stale document cannot overwrite an expiry. HTTP lists currently return all participant history with effective status; filtering by status is not implemented.
+`expireServiceRequests(filter?, now?)` in `src/services/requests/rules.js` materialises expired statuses for maintenance/reporting using conditional atomic updates and runs on `REQUEST_EXPIRY_SWEEP_INTERVAL_MS` (default 60 seconds) via `startBackgroundTask`. Correctness does not depend on the sweep (reads and transitions compute effective expiry on demand). Its writes increment the request version, so a concurrently loaded stale document cannot overwrite an expiry. HTTP lists support an optional exact `status` filter using effective expiry before pagination/counting.
 
 Confirmed appointments do not expire when their earlier payment deadline passes. Inspection completion requires the original window to have ended. Repair work may start once its confirmed window begins; paid appointments do not silently auto-cancel if their window is missed. Scheduling protects planned windows; overruns and rescheduling need a future support policy.
 
@@ -110,9 +113,9 @@ Confirmed appointments do not expire when their earlier payment deadline passes.
 
 Homeowners can cancel pending requests and unpaid inspection reservations. Their inspection reservation is released and the request becomes `cancelled`. Cancelling an unpaid repair reservation releases that repair reservation and ends repair progression as `repair_not_proceeding`; the completed inspection and its verified-event history stay unchanged. This does not reverse an inspection payment or imply any refund.
 
-Ordinary cancellation of a confirmed appointment, work, completion awaiting confirmation, final balance obligation or reported problem is rejected with an explanation. Resolving those cases requires a future support policy. Quote decline and expiry retain inspection history. A reported problem requires an explanation and blocks homeowner confirmation, normal final payment and settlement. No arbitration, admin resolution, automatic refunds or automatic payments exist.
+Ordinary cancellation of a confirmed appointment, work, completion awaiting confirmation, final balance obligation or reported problem is rejected with an explanation. Quote decline and expiry retain inspection history. A reported problem requires an explanation and blocks homeowner confirmation, normal final payment and settlement. The separate admin support workflow can resume confirmation or record external resolution as `support_closed`; no automatic refunds or payments occur. See [support contracts](DOMAIN_WORKFLOWS.md#support).
 
-Deletion, soft deletion and role changes that invalidate participation return 409 while either participant has unresolved requests, reservations, inspection/repair work, final-balance obligations, reported problems, or processing/reconciliation-required payment events. This guard runs under the existing account lock, before deactivation or user/profile changes. Unanswered/unpaid effective expiry, rejection, safe cancellation, quote decline/expiry and completed bookings do not block deletion by themselves. A late verified event still requiring reconciliation is a new unresolved support obligation; its event is preserved and blocks deletion of remaining participant accounts until a future support workflow resolves it. A late event cannot restore an already deleted account.
+Deletion, soft deletion and role changes that invalidate participation return 409 while either participant has unresolved requests, reservations, work, final-balance obligations, reported problems, processing events or unresolved reconciliation events. The guard runs under the existing account lock before account/profile changes. Unpaid effective expiry, rejection, safe cancellation, quote decline/expiry, completed bookings and `support_closed` bookings do not block deletion by themselves. Late reconciliation events remain independent obligations until an admin records external resolution; closing a booking does not resolve its receipts. A late event cannot restore an already deleted account.
 
 ## Reservation and lifecycle concurrency guarantee
 
@@ -186,4 +189,4 @@ Run `npm test` with a local MongoDB server or `MONGODB_URI_TEST`. New tests use 
 
 Do not add Postman scripts calling a public paid endpoint; none exists. For quick testing, use near-future windows and configurable shorter response bounds/reservation durations in a development database. The API still enforces inspection end and repair start times; it exposes no clock-bypass endpoint.
 
-Deferred: real payment adapters/webhooks, money movement, wallets, escrow, payouts/refunds, support/problem resolution, rescheduling, quote versions, chat, notifications, reviews, frontend and automatic recovery of abandoned locks.
+Deferred: real payment adapters/webhooks, money movement, wallets, escrow, payouts/refunds, rescheduling, quote versions, chat, notifications, frontend and automatic recovery of abandoned locks. Admin support resolution and completed-job reviews are implemented; see [domain workflows](DOMAIN_WORKFLOWS.md).

@@ -1,7 +1,8 @@
 import ServiceRequest from "../models/serviceRequest.js";
-import { handleMongooseError } from "../utils/errors.js";
+import { handleMongooseError, QueryValidationError } from "../utils/errors.js";
 import { parsePagination, paginationMeta } from "../utils/pagination.js";
-import { requestView } from "../services/requests/rules.js";
+import { requestView, expiryRules } from "../services/requests/rules.js";
+import { REQUEST_STATUS } from "../constants/serviceRequests.js";
 import { assertParticipant, loadRequest } from "../services/requests/serviceRequests.js";
 
 const respond = (res, statusCode, data, message = "Service request updated successfully") =>
@@ -28,13 +29,27 @@ export const getServiceRequest = async (req, res) => {
 export const listServiceRequests = async (req, res) => {
   try {
     const { limit, page, skip } = parsePagination(req.query);
+    const now = new Date();
+    const status = req.query.status;
+    if (Object.keys(req.query).some((key) => key.startsWith("status["))
+      || (status !== undefined && (typeof status !== "string" || !Object.values(REQUEST_STATUS).includes(status)))) {
+      throw new QueryValidationError("status must be a single valid service request status");
+    }
     // Explicit participant filter; no admin bypass and no populated account documents.
     const filter = { $or: [{ homeowner: req.user._id }, { artisan: req.user._id }] };
+    if (status !== undefined) {
+      const expiring = expiryRules.find((rule) => rule.from === status);
+      const expired = expiryRules.filter((rule) => rule.to === status);
+      filter.$and = [{ $or: [
+        { status, ...(expiring ? { [expiring.field]: { $gt: now } } : {}) },
+        ...expired.map((rule) => ({ status: rule.from, [rule.field]: { $lte: now } })),
+      ] }];
+    }
     const [records, total] = await Promise.all([
       ServiceRequest.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit),
       ServiceRequest.countDocuments(filter),
     ]);
     return res.status(200).json({ statusCode: 200, success: true, message: "Your service requests retrieved successfully",
-      data: records.map((record) => requestView(record)), meta: paginationMeta(total, page, limit) });
+      data: records.map((record) => requestView(record, now)), meta: paginationMeta(total, page, limit) });
   } catch (error) { return failure(res, error); }
 };

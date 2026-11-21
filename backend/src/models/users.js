@@ -5,6 +5,18 @@ const avatarSchema = new mongoose.Schema({
     publicId: { type: String, required: true, select: false },
 }, { _id: false });
 
+const credentialTokenSchema = new mongoose.Schema({
+    hash: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    authVersion: { type: Number, required: true },
+    email: { type: String, required: true },
+}, { _id: false });
+const hideCredentials = (_document, value) => {
+    delete value.passwordReset;
+    delete value.emailChange;
+    return value;
+};
+
 const userSchema = new mongoose.Schema({
     firstName: {type: String, required: true, trim: true},
     lastName: {type: String, required: true, trim: true},
@@ -20,6 +32,8 @@ const userSchema = new mongoose.Schema({
     // Missing on legacy accounts, whose original password length is unknown.
     passwordByteLimit: { type: Number, enum: [72], select: false },
     authVersion: { type: Number, default: 0, select: false },
+    passwordReset: { type: credentialTokenSchema, select: false },
+    emailChange: { type: credentialTokenSchema, select: false },
     role: {
         type: String,
         required: true,
@@ -41,10 +55,14 @@ const userSchema = new mongoose.Schema({
 {
 
     timestamps: true,
-    toJSON: { virtuals: true, versionKey: false },
-    toObject: { virtuals: true, versionKey: false },
+    toJSON: { virtuals: true, versionKey: false, transform: hideCredentials },
+    toObject: { virtuals: true, versionKey: false, transform: hideCredentials },
 },
 );
+
+// Token lookups need indexes, never TTL: expiry must not delete the owning account.
+userSchema.index({ "passwordReset.hash": 1 }, { sparse: true });
+userSchema.index({ "emailChange.hash": 1 }, { sparse: true });
 
 const User = mongoose.model("User", userSchema);
 export default User;

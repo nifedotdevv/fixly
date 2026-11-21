@@ -12,6 +12,13 @@ const schema = new mongoose.Schema({
   currency: { type: String, required: true, match: /^[A-Z]{3}$/ },
   outcome: { type: String, enum: ["processing", "applied", "reconciliation_required"], default: "processing" },
   reason: String,
+  resolution: new mongoose.Schema({
+    disposition: { type: String, enum: ["externally_refunded", "externally_settled"], required: true },
+    resolutionReference: { type: String, required: true, maxlength: 200 },
+    note: { type: String, required: true, maxlength: 2000 },
+    resolvedBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+    resolvedAt: { type: Date, required: true },
+  }, { _id: false, strict: "throw" }),
 }, { timestamps: true, strict: "throw", read: "primary", writeConcern: { w: "majority" } });
 schema.index({ homeowner: 1, outcome: 1 });
 schema.index({ artisan: 1, outcome: 1 });

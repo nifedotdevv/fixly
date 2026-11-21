@@ -21,6 +21,7 @@ const actions = [
   ["repair/complete", "artisan", () => ({})],
   ["completion/confirm", "homeowner", () => ({})],
   ["problems", "homeowner", () => ({ explanation: "The tap still leaks" })],
+  ["review", "homeowner", () => ({ rating: 5, comment: "Completed booking review" })],
 ];
 
 const sameBooking = (before, after) => assert.deepEqual(after, before, "Denied actions must not modify the request");

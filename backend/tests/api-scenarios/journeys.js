@@ -312,6 +312,14 @@ export const runJourneys = async (h, { defaults = false } = {}) => {
 
   await h.scenario("J01", "Inspection, quote, verified deposit, repair, confirmation and final balance complete over HTTP", async () => {
     await completeHappyPath(h, bookings.happy);
+    const booking = bookings.happy;
+    const reviewed = data(await action(h, booking, "/review", booking.owner, { rating: 5, comment: "Careful repair" }, 201));
+    assert.equal(reviewed.review.rating, 5);
+    await action(h, booking, "/review", booking.owner, { rating: 1 }, 409);
+    const profile = data(await h.request("GET", `/api/v1/artisan/profile/${booking.artisan.profileId}`, { status: 200 }));
+    assert.deepEqual(profile.ratingSummary, { count: 1, average: 5 });
+    const history = await h.request("GET", `${BASE}?status=completed`, { actor: booking.owner, status: 200 });
+    assert.ok(history.body.data.some((record) => record.id === booking.id));
   });
 
   await h.scenario("J04", "A reported problem blocks normal completion, payment and account removal", async () => {
