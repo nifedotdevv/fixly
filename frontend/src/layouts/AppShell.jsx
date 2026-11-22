@@ -21,8 +21,12 @@ const NAV = {
   ],
 }
 
+// The global accent ring has too little contrast on the ink band; use accent-fg with an ink gap.
+const onInkRing =
+  'focus-visible:shadow-[0_0_0_2px_var(--color-ink),0_0_0_4px_var(--color-accent-fg)]'
+
 const navLink = ({ isActive }) =>
-  `inline-flex min-h-11 items-center px-2 hover:underline underline-offset-4 ${isActive ? 'font-medium underline' : 'text-accent-fg/80'}`
+  `inline-flex min-h-11 items-center rounded-sm px-2 hover:underline underline-offset-4 ${onInkRing} ${isActive ? 'font-medium underline' : 'text-accent-fg/80'}`
 
 const itemClass =
   'flex min-h-11 cursor-pointer items-center rounded-sm px-3 text-fg outline-none data-[highlighted]:bg-surface-inset'
@@ -33,7 +37,7 @@ function AccountMenu({ me, signOut }) {
     <Menu.Root>
       <Menu.Trigger
         aria-label="Account menu"
-        className="inline-flex size-11 items-center justify-center rounded-full"
+        className={`inline-flex size-11 items-center justify-center rounded-full ${onInkRing}`}
       >
         <Avatar src={me.avatar?.url} role={me.role} name={name} size={32} />
       </Menu.Trigger>
@@ -41,7 +45,7 @@ function AccountMenu({ me, signOut }) {
         <Menu.Content
           align="end"
           sideOffset={8}
-          className="z-40 min-w-48 rounded-md border border-border bg-surface p-1 shadow-overlay"
+          className="z-40 min-w-48 rounded-md bg-surface p-1 shadow-overlay"
         >
           <Menu.Label className="truncate px-3 py-2 text-caption text-muted">{name || me.email}</Menu.Label>
           <Menu.Item asChild>
@@ -64,7 +68,7 @@ export default function AppShell({ maxWidth }) {
       <header className="bg-ink text-accent-fg">
         <div className={`mx-auto flex w-full ${maxWidth} items-center justify-between gap-4 px-4 sm:px-8`}>
           <div className="flex flex-wrap items-center gap-x-6">
-            <Wordmark to="/dashboard" className="py-3" />
+            <Wordmark to="/dashboard" className={`rounded-sm py-3 ${onInkRing}`} />
             <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
               {items.map((i) => (
                 <NavLink key={i.to} to={i.to} className={navLink}>{i.label}</NavLink>

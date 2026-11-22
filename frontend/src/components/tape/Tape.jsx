@@ -20,11 +20,16 @@ function describe({ status, deadline, milestone, label }) {
   if (tone === 'ended') text = `Ended at stage ${stage}: ${here}. ${label}.`
   else if (status === 'problem_reported') text = `Stage ${stage}: ${here}. Problem reported, support is reviewing.`
   else if (status === 'completed') text = `Stage ${stage}: ${here}. Complete.`
-  else text = `Stage ${stage}: ${here}. Next: ${MILESTONES[milestone + 1]}.`
+  else {
+    const next = MILESTONES[milestone + 1]
+    text = `Stage ${stage}: ${here}.${next ? ` Next: ${next}.` : ''}`
+  }
   if (deadline) text += ` Ends ${formatTime(deadline)}, ${formatRelative(deadline)}.`
   return text
 }
 
+// The mini tape is aria-hidden and carries no text, so it must always sit beside a StatusBadge
+// that states the status in words.
 export default function Tape({ status, view, deadline = null, size = 'full' }) {
   const milestone = milestoneFor({ ...view, status })
   const { tone, label } = statusMeta(status)
@@ -97,7 +102,7 @@ export default function Tape({ status, view, deadline = null, size = 'full' }) {
           <span
             key={name}
             className={cn(
-              'w-1/7 px-0.5 text-center text-caption text-balance',
+              'w-1/7 px-1 text-center text-caption text-balance',
               i === milestone ? 'font-medium text-fg' : i < milestone ? 'text-fg-2' : 'text-muted',
             )}
           >
@@ -112,7 +117,7 @@ export default function Tape({ status, view, deadline = null, size = 'full' }) {
         </p>
         {problem && <p className="text-error">Problem reported at this stage</p>}
         {deadline && (
-          <p className="flex items-center gap-1.5 text-warning">
+          <p className="flex items-center gap-2 text-warning">
             <Clock size={16} strokeWidth={1.75} className="shrink-0" />
             <span className="tabular-nums">
               {countdown.expired

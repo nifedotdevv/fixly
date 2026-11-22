@@ -7,7 +7,7 @@ import { useAuth } from './useAuth.js'
 
 function Waiting() {
   return (
-    <div role="status" aria-label="Loading" className="py-8">
+    <div role="status" aria-label="Loading…" className="py-8">
       <Skeleton className="h-9 w-64" />
     </div>
   )

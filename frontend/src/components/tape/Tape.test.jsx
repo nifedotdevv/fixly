@@ -58,3 +58,8 @@ test('SplitTape widths are proportional to the amounts', () => {
   expect(screen.getByText(/^Deposit .*\(70%\)$/)).toBeInTheDocument()
   expect(screen.getByText(/^Balance .*\(30%\)$/)).toBeInTheDocument()
 })
+
+test('SplitTape renders nothing when total is 0', () => {
+  const { container } = render(<SplitTape total={0} depositAmount={0} balanceAmount={0} />)
+  expect(container).toBeEmptyDOMElement()
+})

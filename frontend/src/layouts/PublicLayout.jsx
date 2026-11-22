@@ -19,12 +19,12 @@ export default function PublicLayout() {
           <Wordmark className="py-3" />
           <nav aria-label="Main" className="flex flex-wrap items-center gap-1 sm:gap-3">
             <NavLink to="/artisans" className={navLink}>Find an artisan</NavLink>
-            {status === 'signed-in' ? (
-              <LinkButton to="/dashboard" size="compact">Open dashboard</LinkButton>
-            ) : (
+            {/* Nothing for auth links while the session loads, so Sign in never flashes for a signed-in user. */}
+            {status === 'signed-in' && <LinkButton to="/dashboard">Open dashboard</LinkButton>}
+            {status === 'signed-out' && (
               <>
                 <NavLink to="/login" className={navLink}>Sign in</NavLink>
-                <LinkButton to="/register" size="compact">Sign up</LinkButton>
+                <LinkButton to="/register">Sign up</LinkButton>
               </>
             )}
           </nav>
@@ -38,10 +38,11 @@ export default function PublicLayout() {
           <p>
             <span className="font-display font-black text-fg">Fixly</span> connects homeowners with artisans for inspections and repairs.
           </p>
-          <nav aria-label="Footer" className="flex gap-4">
-            <Link to="/artisans" className="hover:underline">Find an artisan</Link>
-            <Link to="/register" className="hover:underline">Sign up</Link>
-          </nav>
+          {status === 'signed-out' && (
+            <nav aria-label="Footer">
+              <Link to="/register" className="inline-flex min-h-6 items-center hover:underline">Sign up</Link>
+            </nav>
+          )}
         </div>
       </footer>
     </div>

@@ -39,12 +39,18 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    /* Opacity-only changes at the instant duration; transforms are disabled. */
     *, ::before, ::after {
-      animation-duration: 0.01ms !important;
+      animation-duration: var(--duration-instant) !important;
       animation-iteration-count: 1 !important;
-      transition-property: opacity !important;
+      animation-timing-function: linear !important;
+      transition-duration: var(--duration-instant) !important;
+      transition-timing-function: linear !important;
       scroll-behavior: auto !important;
     }
+    /* No press scaling or spinning; centring uses `translate`, so leave that alone. */
+    * { scale: none !important; }
+    .animate-spin, .ui-pulse { animation: none !important; }
   }
 }
 

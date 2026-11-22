@@ -64,7 +64,7 @@ export function DeleteSection() {
         setError('Password is incorrect')
       } else if (err.status === 409 && err.code === 'LAST_ADMIN') {
         setError('Fixly needs at least one active admin.')
-      } else if (err.status === 409) {
+      } else if (err.status === 409 && /unresolved service requests/i.test(err.message)) {
         setError(
           <>Finish or cancel your open jobs first. <Link to="/requests" className={LINK}>See your requests</Link></>,
         )
@@ -74,22 +74,19 @@ export function DeleteSection() {
     endSession(navigate, 'Account deleted. You can reactivate it within 30 days from the sign-in page.')
   }
 
-  const description = (
-    <>
-      <span className="block">You can reactivate it within 30 days from the sign-in page. Enter your password to delete it.</span>
-      <span className="mt-4 flex flex-col gap-2">
-        <label htmlFor="delete-password" className="font-medium text-fg">Password</label>
-        <Input
-          id="delete-password"
-          type="password"
-          autoComplete="current-password"
-          autoFocus
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={invalid ? true : undefined}
-        />
-      </span>
-    </>
+  const fields = (
+    <div className="mt-4 flex flex-col gap-2">
+      <label htmlFor="delete-password" className="font-medium text-fg">Password</label>
+      <Input
+        id="delete-password"
+        type="password"
+        autoComplete="current-password"
+        autoFocus
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        aria-invalid={invalid ? true : undefined}
+      />
+    </div>
   )
 
   return (
@@ -97,13 +94,15 @@ export function DeleteSection() {
       <ConfirmDialog
         trigger={<Button variant="destructive" className="self-start">Delete account</Button>}
         title="Delete your account?"
-        description={description}
+        description="You can reactivate it within 30 days from the sign-in page. Enter your password to delete it."
         confirmLabel="Delete my account"
         loadingLabel="Deleting"
         error={error}
         onOpenChange={(o) => { if (o) { setError(null); setInvalid(false); setPassword('') } }}
         onConfirm={confirm}
-      />
+      >
+        {fields}
+      </ConfirmDialog>
     </Section>
   )
 }

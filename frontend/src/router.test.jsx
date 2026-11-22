@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import AuthProvider from './auth/AuthProvider.jsx'
 import { ToastProvider } from './components/ui/index.js'
-import { clearSession, setToken } from './lib/session.js'
+import { clearSession, expireSession, setToken } from './lib/session.js'
 import AppRoutes from './router.jsx'
 
 function Where() {
@@ -99,4 +100,23 @@ test('signed-in users are sent away from /login', async () => {
   setToken('t')
   renderAt('/login')
   await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/requests'))
+})
+
+test('session expiry on a protected page lands on login with expired=1', async () => {
+  mockApi({ role: 'artisan' })
+  setToken('t')
+  renderAt('/requests')
+  await screen.findByRole('heading', { name: 'Requests' })
+  act(() => expireSession())
+  await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/login?next=%2Frequests&expired=1'))
+})
+
+test('signing out from the account menu goes to the home page', async () => {
+  const user = userEvent.setup()
+  mockApi({ role: 'artisan' })
+  setToken('t')
+  renderAt('/requests')
+  await user.click(await screen.findByRole('button', { name: 'Account menu' }))
+  await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }))
+  await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/))
 })

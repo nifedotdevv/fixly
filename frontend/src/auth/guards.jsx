@@ -6,7 +6,7 @@ import { useAuth } from './useAuth.js'
 
 function PageSkeleton() {
   return (
-    <div role="status" aria-label="Loading" className="flex flex-col gap-4 py-8">
+    <div role="status" aria-label="Loading…" className="flex flex-col gap-4 py-8">
       <Skeleton className="h-9 w-64" />
       <Skeleton className="h-5 w-full max-w-xl" />
       <Skeleton className="h-5 w-full max-w-md" />
@@ -15,12 +15,16 @@ function PageSkeleton() {
 }
 
 export function RequireAuth() {
-  const { status } = useAuth()
+  const { status, endReasonFor } = useAuth()
   const location = useLocation()
   if (status === 'loading') return <PageSkeleton />
   if (status === 'signed-out') {
-    const next = encodeURIComponent(location.pathname + location.search)
-    return <Navigate to={`/login?next=${next}`} replace />
+    const path = location.pathname + location.search
+    const reason = endReasonFor?.(location.key)
+    // The session just ended here: sign out goes home, expiry says so on the login page.
+    if (reason === 'signed-out') return <Navigate to="/" replace />
+    const next = encodeURIComponent(path)
+    return <Navigate to={`/login?next=${next}${reason === 'expired' ? '&expired=1' : ''}`} replace />
   }
   return <Outlet />
 }

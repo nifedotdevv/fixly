@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { MemoryRouter } from 'react-router'
 import { contrastRatio, toRgb } from './contrast.js'
 import {
   Avatar, Badge, Button, ChipsInput, ConfirmDialog, ConflictNotice, DateTimeInput, Dialog,
@@ -129,7 +128,7 @@ function ComponentsSection() {
           ))}
           <span className="text-caption text-muted">link</span>
           <div>
-            <MemoryRouter><LinkButton to="/requests" variant="secondary">View requests</LinkButton></MemoryRouter>
+            <LinkButton to="/requests" variant="secondary">View requests</LinkButton>
           </div>
         </div>
       </Sub>

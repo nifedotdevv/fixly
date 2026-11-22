@@ -2,6 +2,7 @@ import { formatMoney } from '../../lib/money.js'
 import './tape.css'
 
 export default function SplitTape({ total, depositAmount, balanceAmount, currency = 'NGN' }) {
+  if (!(total > 0)) return null
   const depositPct = Math.round((depositAmount / total) * 100)
   const balancePct = Math.round((balanceAmount / total) * 100)
   const depositText = `Deposit ${formatMoney({ amount: depositAmount, currency })} (${depositPct}%)`
@@ -19,9 +20,10 @@ export default function SplitTape({ total, depositAmount, balanceAmount, currenc
         <span className="absolute bottom-0 h-3.5 w-0.5 -translate-x-1/2 bg-ink" style={{ left: depositWidth }} />
         <span className="absolute bottom-0 right-0 h-3.5 w-0.5 bg-ink" />
       </div>
-      <div className="mt-1 flex text-caption tabular-nums text-fg" aria-hidden="true">
-        <span className="min-w-0 pr-2" style={{ width: depositWidth }}>{depositText}</span>
-        <span className="min-w-0" style={{ width: balanceWidth }}>{balanceText}</span>
+      {/* Stacked below sm so long amounts never overflow; proportional (and wrapping) from sm up. */}
+      <div className="mt-1 flex flex-col gap-1 text-caption tabular-nums text-fg sm:flex-row sm:gap-0" aria-hidden="true">
+        <span className="min-w-0 sm:w-(--w) sm:pr-2" style={{ '--w': depositWidth }}>{depositText}</span>
+        <span className="min-w-0 sm:w-(--w)" style={{ '--w': balanceWidth }}>{balanceText}</span>
       </div>
     </div>
   )

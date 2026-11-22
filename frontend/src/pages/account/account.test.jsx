@@ -79,7 +79,7 @@ test('a password change clears the session and goes to login', async () => {
 
 test('delete with open bookings keeps the dialog open with the 409 message', async () => {
   const user = userEvent.setup()
-  reply(409, { message: 'You have open requests' })
+  reply(409, { message: 'Account has unresolved service requests' })
   setup()
   await user.click(screen.getByRole('button', { name: 'Delete account' }))
   const dialog = await screen.findByRole('alertdialog')
@@ -101,4 +101,16 @@ test('sign out on all devices confirms, clears the session and goes to login', a
   expect(await screen.findByText('at /login: Signed out on all devices.')).toBeInTheDocument()
   expect(fetch.mock.calls[0][0]).toBe('/api/v1/auth/logout-all')
   expect(clearSession).toHaveBeenCalled()
+})
+
+test('another 409 on delete shows the server message', async () => {
+  const user = userEvent.setup()
+  reply(409, { message: 'Another account lifecycle operation is in progress' })
+  setup()
+  await user.click(screen.getByRole('button', { name: 'Delete account' }))
+  const dialog = await screen.findByRole('alertdialog')
+  await user.type(within(dialog).getByLabelText('Password'), 'OldPassw0rd!')
+  await user.click(within(dialog).getByRole('button', { name: 'Delete my account' }))
+  expect(await within(dialog).findByText(/Another account lifecycle operation/)).toBeInTheDocument()
+  expect(within(dialog).queryByText(/open jobs/)).not.toBeInTheDocument()
 })

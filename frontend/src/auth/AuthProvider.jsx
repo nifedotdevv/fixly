@@ -13,15 +13,21 @@ export default function AuthProvider({ children }) {
   const location = useLocation()
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()))
 
+  // How the session ended and at which location, so RequireAuth redirects to the right place.
+  const [ended, setEnded] = useState(null)
+
   const pathRef = useRef('')
+  const keyRef = useRef('')
   useEffect(() => {
     pathRef.current = location.pathname + location.search
-  }, [location.pathname, location.search])
+    keyRef.current = location.key
+  }, [location.pathname, location.search, location.key])
 
   useEffect(
     () =>
       onSessionChange((reason) => {
         setHasToken(Boolean(getToken()))
+        setEnded({ reason, key: keyRef.current })
         if (reason === 'expired') {
           const next = encodeURIComponent(pathRef.current || '/')
           navigate(`/login?next=${next}&expired=1`, { replace: true })
@@ -47,6 +53,7 @@ export default function AuthProvider({ children }) {
       setToken(token)
       queryClient.setQueryData(queryKeys.me(), { data: user })
       setHasToken(true)
+      setEnded(null)
     },
     [queryClient],
   )
@@ -56,6 +63,11 @@ export default function AuthProvider({ children }) {
     navigate('/', { replace: true })
   }, [navigate])
 
-  const value = useMemo(() => ({ me, status, signIn, signOut }), [me, status, signIn, signOut])
+  const endReasonFor = useCallback((key) => (ended?.key === key ? ended.reason : null), [ended])
+
+  const value = useMemo(
+    () => ({ me, status, signIn, signOut, endReasonFor }),
+    [me, status, signIn, signOut, endReasonFor],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

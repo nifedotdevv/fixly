@@ -84,3 +84,53 @@ test('ChipsInput lowercases, collapses whitespace, dedupes and removes', async (
   await user.click(screen.getByRole('button', { name: 'Remove yaba' }))
   expect(screen.queryByText('yaba')).not.toBeInTheDocument()
 })
+
+test('a loading submit button stays focusable but does not activate', async () => {
+  const user = userEvent.setup()
+  const onClick = vi.fn()
+  const onSubmit = vi.fn((e) => e.preventDefault())
+  render(
+    <form onSubmit={onSubmit}>
+      <input aria-label="Name" />
+      <Button type="submit" loading onClick={onClick}>Save</Button>
+    </form>,
+  )
+  const button = screen.getByRole('button')
+  expect(button).toHaveAttribute('aria-disabled', 'true')
+  button.focus()
+  expect(button).toHaveFocus()
+  await user.keyboard('{Enter}')
+  await user.keyboard(' ')
+  await user.click(button)
+  await user.type(screen.getByLabelText('Name'), 'x{Enter}')
+  expect(onClick).not.toHaveBeenCalled()
+  expect(onSubmit).not.toHaveBeenCalled()
+})
+
+test('MoneyInput accepts a pasted "₦2,500"', async () => {
+  const user = userEvent.setup()
+  const onChange = vi.fn()
+  render(<MoneyInput aria-label="Amount" onChange={onChange} />)
+  const input = screen.getByLabelText('Amount')
+  await user.click(input)
+  await user.paste('₦2,500')
+  expect(input).toHaveValue('2500')
+  expect(onChange).toHaveBeenLastCalledWith(250000)
+  await user.clear(input)
+  await user.type(input, '12.5')
+  expect(screen.getByText('Enter a whole naira amount')).toBeInTheDocument()
+})
+
+test('ChipsInput explains a duplicate instead of dropping it silently', async () => {
+  const user = userEvent.setup()
+  function Harness() {
+    const [value, setValue] = useState([])
+    return <ChipsInput aria-label="Areas" value={value} onChange={setValue} />
+  }
+  render(<Harness />)
+  const input = screen.getByLabelText('Areas')
+  await user.type(input, 'yaba,')
+  await user.type(input, 'Yaba,')
+  expect(screen.getAllByText('“yaba” is already added.').length).toBeGreaterThan(0)
+  expect(input).toHaveFocus()
+})

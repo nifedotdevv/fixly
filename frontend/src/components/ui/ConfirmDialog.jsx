@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { CircleAlert } from 'lucide-react'
 import Button from './Button.jsx'
@@ -10,8 +10,9 @@ import './ui.css'
 // rejects; show the failure through the `error` prop.
 export default function ConfirmDialog({
   trigger, open: openProp, onOpenChange, title, description, confirmLabel, loadingLabel,
-  cancelLabel = 'Cancel', tone = 'destructive', onConfirm, typeToConfirm, error,
+  cancelLabel = 'Cancel', tone = 'destructive', onConfirm, typeToConfirm, error, children,
 }) {
+  const typedId = useId()
   const [innerOpen, setInnerOpen] = useState(false)
   const [typed, setTyped] = useState('')
   const [pending, setPending] = useState(false)
@@ -47,12 +48,13 @@ export default function ConfirmDialog({
         <AlertDialog.Content className="ui-dialog fixed left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md bg-surface p-4 sm:p-6 shadow-overlay">
           <AlertDialog.Title className="font-display text-h3" style={{ fontStretch: '88%', fontWeight: 720 }}>{title}</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-fg-2">{description}</AlertDialog.Description>
+          {children}
           {typeToConfirm != null && (
             <div className="mt-4 flex flex-col gap-2">
-              <label htmlFor="confirm-typed" className="font-medium">
+              <label htmlFor={typedId} className="font-medium">
                 Type <span className="tabular">{typeToConfirm}</span> to confirm
               </label>
-              <Input id="confirm-typed" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+              <Input id={typedId} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} />
             </div>
           )}
           {error && (
