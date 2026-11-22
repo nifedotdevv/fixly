@@ -1,5 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { MemoryRouter } from 'react-router'
 import { contrastRatio, toRgb } from './contrast.js'
+import {
+  Avatar, Badge, Button, ChipsInput, ConfirmDialog, ConflictNotice, DateTimeInput, Dialog,
+  EmptyState, ErrorState, Field, Input, LinkButton, MoneyInput, Pagination, Select, Skeleton,
+  StatusBadge, Textarea, ToastProvider, useToast,
+} from '../components/ui/index.js'
 
 const SCALE = [
   { name: 'caption', size: '13px', cls: 'text-caption' },
@@ -71,7 +77,150 @@ function ContrastRow({ fgName, bgName }) {
   )
 }
 
-export default function Specimen() {
+
+const TONES = ['waiting', 'clock', 'booked', 'working', 'attention', 'done', 'ended']
+
+function Sub({ title, children }) {
+  return (
+    <div className="space-y-3">
+      <h3>{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function ToastDemo() {
+  const { toast } = useToast()
+  return (
+    <div className="flex flex-wrap gap-3">
+      <Button variant="secondary" onClick={() => toast({ title: 'Quote sent', tone: 'success' })}>Show success toast</Button>
+      <Button variant="secondary" onClick={() => toast({ title: 'Could not send the quote. Check your connection and try again.', tone: 'error' })}>Show error toast</Button>
+    </div>
+  )
+}
+
+function ComponentsSection() {
+  const [page, setPage] = useState(2)
+  const [chips, setChips] = useState(['plumbing', 'lekki'])
+  const [kobo, setKobo] = useState(null)
+  const [iso, setIso] = useState(null)
+  const [confirmError, setConfirmError] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  return (
+    <section className="space-y-8">
+      <h2>Components</h2>
+      <p className="text-fg-2 max-w-[68ch]">Hover is a colour or underline change on the control under the pointer. Tab to any control to see the focus ring.</p>
+
+      <Sub title="Buttons">
+        <div className="grid gap-4 sm:grid-cols-[8rem_1fr] items-center">
+          {['primary', 'secondary', 'tertiary', 'destructive'].map((v) => (
+            <div key={v} className="contents">
+              <span className="text-caption text-muted">{v}</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant={v}>Send quote</Button>
+                <Button variant={v} disabled>Disabled</Button>
+                <Button variant={v} loading loadingLabel="Sending…">Send quote</Button>
+                <Button variant={v} size="compact">Compact</Button>
+              </div>
+            </div>
+          ))}
+          <span className="text-caption text-muted">link</span>
+          <div>
+            <MemoryRouter><LinkButton to="/requests" variant="secondary">View requests</LinkButton></MemoryRouter>
+          </div>
+        </div>
+      </Sub>
+
+      <Sub title="Fields">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Field label="Full name" helper="As it appears on your ID."><Input autoComplete="name" /></Field>
+          <Field label="Email" error="Enter an email like name@example.com."><Input type="email" defaultValue="ada@" /></Field>
+          <Field label="Disabled"><Input disabled defaultValue="Locked value" /></Field>
+          <Field label="Profession">
+            <Select defaultValue="plumber"><option value="plumber">Plumber</option><option value="electrician">Electrician</option></Select>
+          </Field>
+          <Field label="Describe the problem" helper="Say what you see and where."><Textarea /></Field>
+          <Field label="Description" error="Add at least 20 characters."><Textarea defaultValue="Leak" /></Field>
+          <Field label="Quote amount" helper="Whole naira.">
+            <MoneyInput onChange={setKobo} />
+          </Field>
+          <Field label="Quote amount" error="Enter the amount in whole naira.">
+            <MoneyInput value={null} />
+          </Field>
+          <Field label="Inspection time"><DateTimeInput onChange={setIso} /></Field>
+          <Field label="Areas you cover" helper="Press Enter or comma after each area. Up to 5.">
+            <ChipsInput value={chips} onChange={setChips} max={5} maxLength={30} />
+          </Field>
+        </div>
+        <p className="tabular text-caption text-muted">MoneyInput emits {kobo === null ? 'null' : `${kobo} kobo`}. DateTimeInput emits {iso ?? 'null'}.</p>
+      </Sub>
+
+      <Sub title="Badges">
+        <div className="flex flex-wrap gap-3">
+          <Badge>Plumber</Badge>
+          {TONES.map((t) => <StatusBadge key={t} tone={t}>{t}</StatusBadge>)}
+        </div>
+      </Sub>
+
+      <Sub title="Avatars">
+        <div className="flex items-center gap-4">
+          {[32, 40, 64].map((s) => <Avatar key={s} size={s} role="artisan" name="Tunde Bello" />)}
+          <Avatar role="admin" name="Admin" />
+          <Avatar name="" />
+          <Avatar src="/missing.png" role="artisan" name="Broken source" />
+        </div>
+      </Sub>
+
+      <Sub title="Skeleton, empty, error and conflict">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-10 rounded-full" />
+            <div className="space-y-2 flex-1"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-3/4" /></div>
+          </div>
+          <EmptyState message="You have no requests yet." action={<Button variant="secondary">Find an artisan</Button>} />
+          <ErrorState title="Requests did not load" message="The server did not answer. Check your connection, then retry." onRetry={() => {}} />
+          <ConflictNotice />
+        </div>
+      </Sub>
+
+      <Sub title="Pagination">
+        <div className="space-y-3">
+          <Pagination page={page} totalPages={5} onChange={setPage} />
+          <Pagination page={1} totalPages={1} onChange={() => {}} />
+        </div>
+      </Sub>
+
+      <Sub title="Overlays">
+        <div className="flex flex-wrap gap-3">
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            trigger={<Button variant="secondary">Open dialog</Button>}
+            title="Edit availability"
+            description="Pick the days you take inspections."
+          >
+            <Button onClick={() => setDialogOpen(false)}>Save availability</Button>
+          </Dialog>
+          <ConfirmDialog
+            trigger={<Button variant="secondary">Delete account</Button>}
+            title="Delete your account"
+            description="This permanently deletes ada@example.com and its requests."
+            confirmLabel="Delete account"
+            loadingLabel="Deleting…"
+            typeToConfirm="ada@example.com"
+            error={confirmError}
+            onConfirm={() => new Promise((resolve) => setTimeout(() => { setConfirmError(''); resolve() }, 1200))}
+            onOpenChange={(o) => { if (!o) setConfirmError('') }}
+          />
+          <ToastDemo />
+        </div>
+      </Sub>
+    </section>
+  )
+}
+
+function SpecimenBody() {
   return (
     <main className="mx-auto max-w-[1200px] p-4 sm:p-8 space-y-12">
       <h1>Design specimen</h1>
@@ -149,6 +298,16 @@ export default function Specimen() {
           </button>
         </div>
       </section>
+
+      <ComponentsSection />
     </main>
+  )
+}
+
+export default function Specimen() {
+  return (
+    <ToastProvider>
+      <SpecimenBody />
+    </ToastProvider>
   )
 }
