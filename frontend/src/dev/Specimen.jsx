@@ -6,6 +6,8 @@ import {
   EmptyState, ErrorState, Field, Input, LinkButton, MoneyInput, Pagination, Select, Skeleton,
   StatusBadge, Textarea, ToastProvider, useToast,
 } from '../components/ui/index.js'
+import { SplitTape, Tape } from '../components/tape/index.js'
+import { REQUEST_STATUSES } from '../lib/requestStatus.js'
 
 const SCALE = [
   { name: 'caption', size: '13px', cls: 'text-caption' },
@@ -220,6 +222,53 @@ function ComponentsSection() {
   )
 }
 
+function TapeSection() {
+  const [index, setIndex] = useState(0)
+  const [deadline] = useState(() => new Date(Date.now() + 22 * 60000).toISOString())
+  const cycled = REQUEST_STATUSES[index]
+
+  return (
+    <section className="space-y-6">
+      <h2>Tape</h2>
+      <Sub title="Every status">
+        <div className="space-y-6">
+          {REQUEST_STATUSES.map((status) => (
+            <div key={status} className="space-y-1">
+              <p className="text-caption text-fg-2">{status}</p>
+              <Tape status={status} view={{ status }} />
+            </div>
+          ))}
+          <div className="space-y-1">
+            <p className="text-caption text-fg-2">cancelled after a quote</p>
+            <Tape status="cancelled" view={{ status: 'cancelled', quote: { total: 10000000 } }} />
+          </div>
+        </div>
+      </Sub>
+      <Sub title="Deadline">
+        <Tape status="quote_submitted" view={{ status: 'quote_submitted' }} deadline={deadline} />
+      </Sub>
+      <Sub title="Mini, for list rows">
+        <div className="max-w-sm space-y-3">
+          <Tape status="repair_in_progress" view={{ status: 'repair_in_progress' }} size="mini" />
+          <Tape status="quote_expired" view={{ status: 'quote_expired' }} size="mini" />
+        </div>
+      </Sub>
+      <Sub title="Deposit and balance">
+        <SplitTape total={18500000} depositAmount={12950000} balanceAmount={5550000} currency="NGN" />
+      </Sub>
+      <Sub title="Motion">
+        <div className="space-y-3">
+          <Button variant="secondary" onClick={() => setIndex((i) => (i + 1) % REQUEST_STATUSES.length)}>
+            Next status
+          </Button>
+          <p className="text-caption text-fg-2">{cycled}</p>
+          <Tape status={cycled} view={{ status: cycled }} />
+        </div>
+      </Sub>
+    </section>
+  )
+}
+
 function SpecimenBody() {
   return (
     <main className="mx-auto max-w-[1200px] p-4 sm:p-8 space-y-12">
@@ -300,6 +349,8 @@ function SpecimenBody() {
       </section>
 
       <ComponentsSection />
+
+      <TapeSection />
     </main>
   )
 }

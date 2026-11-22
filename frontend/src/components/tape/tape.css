@@ -1,0 +1,27 @@
+.tape-fill {
+  transform-origin: left;
+  transform: scaleX(var(--tape-to));
+}
+.tape-fill--grow {
+  animation: tape-grow var(--duration-slow) var(--ease-out) both;
+}
+@keyframes tape-grow {
+  from { transform: scaleX(var(--tape-from)); }
+  to { transform: scaleX(var(--tape-to)); }
+}
+@keyframes tape-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tape-fill--grow { animation: tape-fade var(--duration-instant) linear both; }
+}
+.tape-minor-ticks {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-border-strong) 0,
+    var(--color-border-strong) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
