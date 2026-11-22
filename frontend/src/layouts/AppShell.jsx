@@ -4,6 +4,7 @@ import { Avatar } from '../components/ui/index.js'
 import { useAuth } from '../auth/useAuth.js'
 import RouteFocus from './RouteFocus.jsx'
 import SkipLink from './SkipLink.jsx'
+import VerifyBanner from './VerifyBanner.jsx'
 import Wordmark from './Wordmark.jsx'
 
 const NAV = {
@@ -78,7 +79,9 @@ export default function AppShell({ maxWidth }) {
           <AccountMenu me={me} signOut={signOut} />
         </div>
       </header>
-      <div id="banner-slot" />
+      <div id="banner-slot">
+        <VerifyBanner maxWidth={maxWidth} />
+      </div>
       <main id="main" tabIndex={-1} className={`mx-auto w-full ${maxWidth} flex-1 px-4 outline-none sm:px-8`}>
         <Outlet />
       </main>
