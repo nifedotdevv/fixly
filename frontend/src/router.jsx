@@ -5,6 +5,13 @@ import DashboardRedirect from './auth/DashboardRedirect.jsx'
 import AdminLayout from './layouts/AdminLayout.jsx'
 import AppLayout from './layouts/AppLayout.jsx'
 import PublicLayout from './layouts/PublicLayout.jsx'
+import Login from './pages/auth/Login.jsx'
+import Reactivate from './pages/auth/Reactivate.jsx'
+import Register from './pages/auth/Register.jsx'
+import ForgotPassword from './pages/auth/ForgotPassword.jsx'
+import ResetPassword from './pages/auth/ResetPassword.jsx'
+import VerifyEmail from './pages/auth/VerifyEmail.jsx'
+import ConfirmEmailChange from './pages/auth/ConfirmEmailChange.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Placeholder from './pages/Placeholder.jsx'
 
@@ -35,14 +42,14 @@ export default function AppRoutes() {
         <Route path="artisans" element={page('Find an artisan')} />
         <Route path="artisans/:profileId" element={page('Artisan profile')} />
         <Route element={<RedirectIfSignedIn />}>
-          <Route path="login" element={page('Sign in')} />
-          <Route path="register" element={page('Sign up')} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
         </Route>
-        <Route path="reactivate" element={page('Reactivate your account')} />
-        <Route path="forgot-password" element={page('Forgot your password')} />
-        <Route path="reset-password" element={page('Set a new password')} />
-        <Route path="verify-email" element={page('Verify your email')} />
-        <Route path="confirm-email-change" element={page('Confirm your new email')} />
+        <Route path="reactivate" element={<Reactivate />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
+        <Route path="confirm-email-change" element={<ConfirmEmailChange />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
