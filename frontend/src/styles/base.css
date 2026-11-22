@@ -1,0 +1,57 @@
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-stretch: 88%;
+    font-weight: 720;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); }
+  h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); }
+  h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-property: opacity !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-family: var(--font-display);
+    font-weight: 560;
+    font-variant-numeric: tabular-nums;
+  }
+}

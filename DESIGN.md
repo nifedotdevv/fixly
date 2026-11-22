@@ -28,7 +28,7 @@
   5. a new artisan's empty queue
 
 ## Typography
-- **Display and figures:** Archivo Variable (OFL, `@fontsource-variable/archivo`). Headings use `wdth` 88, `wght` 720, tracking −0.01em. Prices, dates, countdowns and table numbers use Archivo `wght` 560 with `font-variant-numeric: tabular-nums`.
+- **Display and figures:** Archivo Variable (OFL, `@fontsource-variable/archivo`).  Import `@fontsource-variable/archivo/wdth.css` (the default import ships wght only, no width axis). Headings use `wdth` 88, `wght` 720, tracking −0.01em. Prices, dates, countdowns and table numbers use Archivo `wght` 560 with `font-variant-numeric: tabular-nums`.
 - **Body/UI:** Atkinson Hyperlegible Next Variable (OFL, `@fontsource-variable/atkinson-hyperlegible-next`), weights 400/500/700. Public Sans was replaced because it is a neo-grotesque like Archivo, which the deslop pairing rule calls typographic mud.
 - No monospace face; ids are never shown to users.
 - **Scale:** ratio 1.25 (major third), base 16px.
@@ -226,3 +226,4 @@ Components use only semantic utilities (`bg-surface`, `text-muted`, `rounded-md`
 
 ## Changelog
 - 2026-11-23: initial system. Workshop modern on a cool neutral ground (cream removed per anti-slop rules); Archivo + Atkinson Hyperlegible Next (Public Sans failed the pairing rule); tape signature.
+- 2026-11-23: Task 2 verified fonts: Archivo has wght 100–900, wdth 62–125 and tnum, but only via the `/wdth.css` entry; Atkinson unchanged. All text pairs pass 4.5:1, no token values changed.
