@@ -1,18 +1,20 @@
-import { lazy, Suspense } from 'react'
-
-const Specimen = import.meta.env.DEV ? lazy(() => import('./dev/Specimen.jsx')) : null
+import { QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter } from 'react-router'
+import { ToastProvider } from './components/ui/index.js'
+import AuthProvider from './auth/AuthProvider.jsx'
+import { queryClient } from './lib/queryClient.js'
+import AppRoutes from './router.jsx'
 
 export default function App() {
-  if (import.meta.env.DEV && location.pathname === '/dev/specimen') {
-    return (
-      <Suspense fallback={null}>
-        <Specimen />
-      </Suspense>
-    )
-  }
   return (
-    <main>
-      <h1>Fixly</h1>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
