@@ -35,7 +35,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Generic login failures without internal messages in responses or sensitive details in logs
 - [x] Authenticated GET/PUT/DELETE /api/v1/users/me/avatar for every role, 5MB image limit, per-account upload limits, and 512x512 WEBP conversion
 - [x] Private avatar metadata and revision guards, queued cleanup retries, public avatar URLs, and image cleanup on permanent account deletion
-- [x] Backend regression suite: 225 passing tests covering account recovery, concurrent creation, avatars, lifecycle/payment boundaries, support resolution, reviews, credential recovery and effective status filtering
+- [x] Backend regression suite: 266 passing tests covering account recovery, concurrent creation, avatars, lifecycle/payment boundaries, support resolution, reviews, credential recovery and effective status filtering
 - [x] Patched body-parser to 2.4.0; bounded password bytes for new accounts and validated list queries
 - [x] GET /api/v1/users/me and GET /api/v1/artisan/profile/me preserve separate account/professional views
 - [x] Shared MongoDB lifecycle coordinator rejects concurrent delete/soft-delete/restore operations with 409
@@ -51,7 +51,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Route B domain workflows: admin problem/reconciliation resolution, immutable completed-job reviews and computed rating summaries, effective request-status filtering, and SMTP-backed credential recovery/update endpoints. See [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md).
 
 ## What Is Next
-- [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change delivery; automated tests mock transport
+- [x] SMTP (Gmail) configured and real delivery verified 2026-11-21 (`npm run mail:check`); `EMAIL_VERIFY_URL` added to the local `.env` 2026-11-23 so verification mail can be sent. Automated tests mock transport
 - [ ] Live payment checkout and signed webhooks remain deferred; rescheduling/quote revisions need a separate versioning and reservation contract
 - [x] Legacy data audit tooling (`npm run data:audit`, dry-run default; `--apply ratings`); running it against the real database remains an operator step
 - [x] Backend last-admin guard (409 `LAST_ADMIN`), `POST /auth/logout-all`, 12h default JWT lifetime, legacy `rating` array hidden from profile responses
