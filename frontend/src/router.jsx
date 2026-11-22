@@ -12,6 +12,7 @@ import ForgotPassword from './pages/auth/ForgotPassword.jsx'
 import ResetPassword from './pages/auth/ResetPassword.jsx'
 import VerifyEmail from './pages/auth/VerifyEmail.jsx'
 import ConfirmEmailChange from './pages/auth/ConfirmEmailChange.jsx'
+import Account from './pages/account/Account.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Placeholder from './pages/Placeholder.jsx'
 
@@ -56,7 +57,7 @@ export default function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="dashboard" element={<DashboardRedirect />} />
-          <Route path="account" element={page('Account')} />
+          <Route path="account" element={<Account />} />
           <Route element={<RequireRole roles={HOUSE_OWNER} />}>
             <Route path="artisans/:profileId/request" element={page('Request an inspection')} />
           </Route>
