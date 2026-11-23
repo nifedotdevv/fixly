@@ -161,7 +161,7 @@ The canonical API reference is [backend/ENDPOINT_AUDIT.md](backend/ENDPOINT_AUDI
 
 ### Support, reviews and credential recovery
 
-Administrator support queues/resolutions, completed-job homeowner reviews with artisan rating summaries, service-request status filtering, password recovery and verified email/password changes are implemented. See [domain workflows and Mailtrap SMTP setup](backend/DOMAIN_WORKFLOWS.md) for endpoint bodies, session revocation and testing instructions. Real email delivery needs SMTP credentials; Live checkout/webhooks, rescheduling and quote revisions are deferred.
+Administrator support queues/resolutions, completed-job homeowner reviews with artisan rating summaries, service-request status filtering, password recovery and verified email/password changes are implemented. See [domain workflows and Mailtrap SMTP setup](backend/DOMAIN_WORKFLOWS.md) for endpoint bodies, session revocation and testing instructions. Real email delivery needs SMTP credentials plus `PASSWORD_RESET_URL`, `EMAIL_CHANGE_URL` and `EMAIL_VERIFY_URL`, which point at the frontend's reset, confirmation and verification pages. Live checkout/webhooks, rescheduling and quote revisions are deferred.
 
 
 ### Automated real-HTTP API scenarios

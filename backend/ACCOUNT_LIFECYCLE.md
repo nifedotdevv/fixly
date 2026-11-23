@@ -60,7 +60,7 @@ Locks coordinate lifecycle endpoints, profile creation, role changes and booking
 
 Admin-deactivated accounts and legacy records without a self-deletion reason or reliable deletion date require admin handling. Repeating admin soft deletion on a self-deleted account makes the restriction administrative. Public reactivation and re-registration cannot bypass it. Unique email and one-profile-per-user indexes remain global, including deleted records, until authorized permanent deletion releases them. There is no automatic age-only purge; the grace deadline governs the credential-verified restart path.
 
-This implementation proves continuity with the previous password. It does not provide email delivery or a forgot-password flow. A user who has lost that password needs administrator assistance until a verified email recovery integration is added. New ordinary registrations retain the existing email verification behavior.
+This implementation proves continuity with the previous password. Email-based recovery is separate: a user who has lost the password can use `POST /api/v1/auth/forgot-password` (see [DOMAIN_WORKFLOWS.md](DOMAIN_WORKFLOWS.md)). Every new registration, including a restart, starts unverified and is sent an email verification link.
 
 ## Background avatar cleanup
 

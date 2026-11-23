@@ -53,7 +53,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Route C frontend built on branch `frontend/route-c` (`frontend/`, React 19, Vite, Tailwind v4, React Query; 235 passing tests): landing, auth and credential recovery pages, account settings, artisan directory/detail/workspace, homeowner and artisan request lifecycle with the tape and payment-waiting panel, and the admin user console and support queues. Known gaps: no online payment, admin user detail cannot show the deactivation reason (API hides `deletionReason`), no search in admin users. See [frontend/README.md](frontend/README.md).
 
 ## What Is Next
-- [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change delivery; automated tests mock transport
+- [x] SMTP (Gmail) configured and real delivery verified 2026-11-21 (`npm run mail:check`); `EMAIL_VERIFY_URL` added to the local `.env` 2026-11-23 so verification mail can be sent. Automated tests mock transport
 - [ ] Live payment checkout and signed webhooks remain deferred; rescheduling/quote revisions need a separate versioning and reservation contract
 - [x] Legacy data audit tooling (`npm run data:audit`, dry-run default; `--apply ratings`); running it against the real database remains an operator step
 - [x] Backend last-admin guard (409 `LAST_ADMIN`), `POST /auth/logout-all`, 12h default JWT lifetime, legacy `rating` array hidden from profile responses
