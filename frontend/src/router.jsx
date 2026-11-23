@@ -20,12 +20,16 @@ import NewRequest from './pages/requests/NewRequest.jsx'
 import RequestDetail from './pages/requests/RequestDetail.jsx'
 import { renderActionForm } from './pages/requests/actionForms.jsx'
 import RequestList from './pages/requests/RequestList.jsx'
+import Landing from './pages/Landing.jsx'
+import UsersList from './pages/admin/users/UsersList.jsx'
+import UserDetail from './pages/admin/users/UserDetail.jsx'
+import ProblemsQueue from './pages/admin/support/ProblemsQueue.jsx'
+import ProblemDetail from './pages/admin/support/ProblemDetail.jsx'
+import PaymentsQueue from './pages/admin/support/PaymentsQueue.jsx'
 import NotFound from './pages/NotFound.jsx'
-import Placeholder from './pages/Placeholder.jsx'
 
 const Specimen = import.meta.env.DEV ? lazy(() => import('./dev/Specimen.jsx')) : null
 
-const page = (title) => <Placeholder title={title} />
 const HOUSE_OWNER = ['house_owner']
 const ARTISAN = ['artisan']
 const ADMIN = ['admin']
@@ -46,7 +50,7 @@ export default function AppRoutes() {
       )}
 
       <Route element={<PublicLayout />}>
-        <Route index element={page('Fixly')} />
+        <Route index element={<Landing />} />
         <Route path="artisans" element={<Directory />} />
         <Route path="artisans/:profileId" element={<ArtisanDetail />} />
         <Route element={<RedirectIfSignedIn />}>
@@ -79,11 +83,11 @@ export default function AppRoutes() {
 
         <Route element={<AdminLayout />}>
           <Route element={<RequireRole roles={ADMIN} />}>
-            <Route path="admin/users" element={page('Users')} />
-            <Route path="admin/users/:id" element={page('User')} />
-            <Route path="admin/support/problems" element={page('Reported problems')} />
-            <Route path="admin/support/problems/:id" element={page('Reported problem')} />
-            <Route path="admin/support/payments" element={page('Payments to reconcile')} />
+            <Route path="admin/users" element={<UsersList />} />
+            <Route path="admin/users/:id" element={<UserDetail />} />
+            <Route path="admin/support/problems" element={<ProblemsQueue />} />
+            <Route path="admin/support/problems/:id" element={<ProblemDetail />} />
+            <Route path="admin/support/payments" element={<PaymentsQueue />} />
           </Route>
         </Route>
       </Route>
