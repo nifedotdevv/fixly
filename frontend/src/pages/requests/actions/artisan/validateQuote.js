@@ -1,10 +1,11 @@
+import { formatMoney } from '../../../../lib/money.js'
 const time = (iso) => new Date(iso).getTime()
 
 export function validateQuote({ scope, total, start, end, expiresAt }, now = Date.now()) {
   const errors = {}
   const len = scope.trim().length
   if (len < 3 || len > 4000) errors.scope = 'Describe the work in 3 to 4000 characters'
-  if (!(total >= 4)) errors.total = 'Enter a total of at least ₦0.04'
+  if (!(total >= 4)) errors.total = `Enter a total of at least ${formatMoney({ amount: 4 })}`
   if (!start) errors.start = 'Choose when the repair starts'
   else if (time(start) <= now) errors.start = 'The repair must start in the future'
   if (!end) errors.end = 'Choose when the repair ends'

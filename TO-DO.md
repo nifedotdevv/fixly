@@ -18,9 +18,11 @@
 
 Route B contracts and Mailtrap setup: [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md). Live payment integration remains deferred.
 
-## Next Phase — Route C: Build the React Frontend (`frontend/`)
-- [ ] Set up `react-router-dom`, Vite `/api` proxy, API client (`Authorization: Bearer` + `401` handling), Auth Context (`GET /api/v1/users/me`), and role guards
-- [ ] Build Auth & Account Settings pages (register, login, 30-day self-reactivation, avatar upload/removal with `frontend/public/avatars/` fallbacks, self-deletion)
-- [ ] Build Public Artisan Directory (`GET /api/v1/artisan/profiles`), Artisan Detail page, and Artisan Profile workspace (`GET/POST/PATCH /api/v1/artisan/profile*`)
-- [ ] Build Homeowner & Artisan Service Request dashboard driving the 16-endpoint booking/quote/repair/review lifecycle
-- [ ] Build Admin Console (`/api/v1/admin`) with explicit confirmation dialogs for destructive actions (`soft-delete`, `delete`, role changes)
+## Route C: React Frontend (`frontend/`), built on branch `frontend/route-c`
+- [x] Set up `react-router-dom`, Vite `/api` proxy, API client (`Authorization: Bearer` + `401` handling), Auth Context (`GET /api/v1/users/me`), and role guards
+- [x] Build Auth & Account Settings pages (register, login, 30-day self-reactivation, avatar upload/removal with `frontend/public/avatars/` fallbacks, self-deletion)
+- [x] Build Public Artisan Directory (`GET /api/v1/artisan/profiles`), Artisan Detail page, and Artisan Profile workspace (`GET/POST/PATCH /api/v1/artisan/profile*`)
+- [x] Build Homeowner & Artisan Service Request dashboard driving the 16-endpoint booking/quote/repair/review lifecycle
+- [x] Build Admin Console (`/api/v1/admin`) with explicit confirmation dialogs for destructive actions (`soft-delete`, `delete`, role changes)
+
+Route C is done with 216 frontend tests. Open items: online payment, a deactivation reason in admin user detail (needs the API to expose `deletionReason`), and admin user search. See [frontend/README.md](frontend/README.md).

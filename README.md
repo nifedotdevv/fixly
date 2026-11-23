@@ -2,7 +2,7 @@
 
 Fixly is a project for connecting homeowners with artisans such as plumbers, electricians, carpenters, and painters. It includes an Express API backed by MongoDB and a React frontend.
 
-The backend supports user accounts and artisan profiles. The frontend is currently a Vite starter page, with the application interface still to be built.
+The backend supports user accounts, artisan profiles and the booking workflow. The frontend covers the public directory, auth, account settings, the request lifecycle and the admin console.
 
 ## Features
 
@@ -87,6 +87,10 @@ npm run dev
 
 Open the local URL printed by Vite. To create a production build, run `npm run build` inside `frontend`.
 
+## Frontend
+
+The React app lives in `frontend/`. See [frontend/README.md](frontend/README.md) for how to run it, its folder map, conventions and route list.
+
 ## API Routes
 
 | Base path | Purpose |
@@ -155,7 +159,7 @@ The canonical API reference is [backend/ENDPOINT_AUDIT.md](backend/ENDPOINT_AUDI
 
 ### Support, reviews and credential recovery
 
-Administrator support queues/resolutions, completed-job homeowner reviews with artisan rating summaries, service-request status filtering, password recovery and verified email/password changes are implemented. See [domain workflows and Mailtrap SMTP setup](backend/DOMAIN_WORKFLOWS.md) for endpoint bodies, session revocation and testing instructions. Real email delivery needs SMTP credentials; the frontend reset/confirmation pages remain unbuilt. Live checkout/webhooks, rescheduling and quote revisions are deferred.
+Administrator support queues/resolutions, completed-job homeowner reviews with artisan rating summaries, service-request status filtering, password recovery and verified email/password changes are implemented. See [domain workflows and Mailtrap SMTP setup](backend/DOMAIN_WORKFLOWS.md) for endpoint bodies, session revocation and testing instructions. Real email delivery needs SMTP credentials; Live checkout/webhooks, rescheduling and quote revisions are deferred.
 
 
 ### Automated real-HTTP API scenarios

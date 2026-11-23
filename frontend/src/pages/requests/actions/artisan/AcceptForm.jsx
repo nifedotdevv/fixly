@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Button, Field, MoneyInput } from '../../../../components/ui/index.js'
+import { formatMoney } from '../../../../lib/money.js'
 import FormErrors from './FormErrors.jsx'
 
 export default function AcceptForm({ action, mutation }) {
   const [fee, setFee] = useState(null)
   const [touched, setTouched] = useState(false)
-  const error = touched && !(fee >= 1) ? 'Enter an inspection fee of at least ₦0.01' : undefined
+  const error = touched && !(fee >= 1) ? `Enter an inspection fee of at least ${formatMoney({ amount: 1 })}` : undefined
 
   async function submit(e) {
     e.preventDefault()
