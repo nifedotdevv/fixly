@@ -35,7 +35,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Generic login failures without internal messages in responses or sensitive details in logs
 - [x] Authenticated GET/PUT/DELETE /api/v1/users/me/avatar for every role, 5MB image limit, per-account upload limits, and 512x512 WEBP conversion
 - [x] Private avatar metadata and revision guards, queued cleanup retries, public avatar URLs, and image cleanup on permanent account deletion
-- [x] Backend regression suite: 225 passing tests covering account recovery, concurrent creation, avatars, lifecycle/payment boundaries, support resolution, reviews, credential recovery and effective status filtering
+- [x] Backend regression suite: 266 passing tests covering account recovery, concurrent creation, avatars, lifecycle/payment boundaries, support resolution, reviews, credential recovery and effective status filtering
 - [x] Patched body-parser to 2.4.0; bounded password bytes for new accounts and validated list queries
 - [x] GET /api/v1/users/me and GET /api/v1/artisan/profile/me preserve separate account/professional views
 - [x] Shared MongoDB lifecycle coordinator rejects concurrent delete/soft-delete/restore operations with 409
@@ -50,7 +50,7 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 
 - [x] Route B domain workflows: admin problem/reconciliation resolution, immutable completed-job reviews and computed rating summaries, effective request-status filtering, and SMTP-backed credential recovery/update endpoints. See [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md).
 
-- [x] Route C frontend built on branch `frontend/route-c` (`frontend/`, React 19, Vite, Tailwind v4, React Query; 216 passing tests): landing, auth and credential recovery pages, account settings, artisan directory/detail/workspace, homeowner and artisan request lifecycle with the tape and payment-waiting panel, and the admin user console and support queues. Known gaps: no online payment, admin user detail cannot show the deactivation reason (API hides `deletionReason`), no search in admin users. See [frontend/README.md](frontend/README.md).
+- [x] Route C frontend built on branch `frontend/route-c` (`frontend/`, React 19, Vite, Tailwind v4, React Query; 235 passing tests): landing, auth and credential recovery pages, account settings, artisan directory/detail/workspace, homeowner and artisan request lifecycle with the tape and payment-waiting panel, and the admin user console and support queues. Known gaps: no online payment, admin user detail cannot show the deactivation reason (API hides `deletionReason`), no search in admin users. See [frontend/README.md](frontend/README.md).
 
 ## What Is Next
 - [ ] Configure Mailtrap SMTP credentials and verify real reset/email-change delivery; automated tests mock transport

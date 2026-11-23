@@ -25,4 +25,4 @@ Route B contracts and Mailtrap setup: [backend/DOMAIN_WORKFLOWS.md](backend/DOMA
 - [x] Build Homeowner & Artisan Service Request dashboard driving the 16-endpoint booking/quote/repair/review lifecycle
 - [x] Build Admin Console (`/api/v1/admin`) with explicit confirmation dialogs for destructive actions (`soft-delete`, `delete`, role changes)
 
-Route C is done with 216 frontend tests. Open items: online payment, a deactivation reason in admin user detail (needs the API to expose `deletionReason`), and admin user search. See [frontend/README.md](frontend/README.md).
+Route C is done with 235 frontend tests. Open items: online payment, a deactivation reason in admin user detail (needs the API to expose `deletionReason`), and admin user search. See [frontend/README.md](frontend/README.md).
