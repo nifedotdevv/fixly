@@ -15,7 +15,7 @@ function AvatarImage({ src, role, name, size, decorative }) {
       width={size}
       height={size}
       onError={() => setStep((s) => s + 1)}
-      className={`${SIZES[size]} rounded-full object-cover bg-surface-inset outline outline-1 -outline-offset-1 outline-black/10 shrink-0`}
+      className={`${SIZES[size]} rounded-full object-cover bg-surface-2 outline outline-1 -outline-offset-1 outline-fg/10 shrink-0`}
     />
   )
 }

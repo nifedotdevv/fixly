@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Button, Field, Input } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
-import { LegacyNotice, Notice, Section } from './shared.jsx'
+import { Fields, LegacyNotice, Notice, Section, SectionFooter } from './shared.jsx'
 import { fieldErrors, useFocusFirstInvalid } from './helpers.js'
 
 export default function EmailSection({ me }) {
@@ -55,21 +55,25 @@ export default function EmailSection({ me }) {
 
   return (
     <Section title="Email" description="Your current email stays active until you confirm the new one.">
-      <p className="flex flex-wrap items-center gap-2">
+      <p className="mb-4 flex flex-wrap items-center gap-2">
         <span className="font-medium">{me.email}</span>
         {me.emailVerified === false && <span className="rounded-sm bg-warning-soft px-2 py-0.5 text-caption text-fg">Not verified</span>}
       </p>
       <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        {sentTo && <Notice tone="success">Confirm from the link we sent to {sentTo}. Your current email stays active until then.</Notice>}
-        {legacy && <LegacyNotice />}
-        {failure && <Notice>{failure}</Notice>}
-        <Field label="Current password" error={errs.currentPassword}>
-          <Input type="password" autoComplete="current-password" value={form.currentPassword} onChange={set('currentPassword')} />
-        </Field>
-        <Field label="New email" error={errs.email}>
-          <Input type="email" autoComplete="email" value={form.email} onChange={set('email')} />
-        </Field>
-        <Button type="submit" loading={loading} loadingLabel="Sending link…" className="self-start">Change email</Button>
+        <Fields>
+          {sentTo && <Notice tone="success">Confirm from the link we sent to {sentTo}. Your current email stays active until then.</Notice>}
+          {legacy && <LegacyNotice />}
+          {failure && <Notice>{failure}</Notice>}
+          <Field label="Current password" error={errs.currentPassword}>
+            <Input type="password" autoComplete="current-password" value={form.currentPassword} onChange={set('currentPassword')} />
+          </Field>
+          <Field label="New email" error={errs.email}>
+            <Input type="email" autoComplete="email" value={form.email} onChange={set('email')} />
+          </Field>
+        </Fields>
+        <SectionFooter>
+          <Button type="submit" loading={loading} loadingLabel="Sending link…">Change email</Button>
+        </SectionFooter>
       </form>
     </Section>
   )

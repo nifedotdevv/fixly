@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Field, Input, Select } from '../../components/ui/index.js'
+import { Button, Field, Input, Select } from '../../components/ui/index.js'
 import { PROFESSIONS } from './helpers.js'
 
 const TEXT_DELAY = 400
@@ -28,7 +28,7 @@ function useTextField(urlValue, commit, resetKey) {
   return [value, setValue]
 }
 
-export default function Filters({ values, onChange, error, resetKey }) {
+export default function Filters({ values, onChange, error, resetKey, onClear }) {
   const set = (key) => (v) => onChange({ [key]: v })
   const [search, setSearch] = useTextField(values.search, set('search'), resetKey)
   const [skill, setSkill] = useTextField(values.skill, set('skill'), resetKey)
@@ -62,7 +62,7 @@ export default function Filters({ values, onChange, error, resetKey }) {
           type="checkbox"
           checked={values.available}
           onChange={(e) => onChange({ available: e.target.checked ? 'true' : '' })}
-          className="size-5 accent-accent"
+          className="size-5 accent-ink"
         />
         Available now only
       </label>
@@ -77,6 +77,7 @@ export default function Filters({ values, onChange, error, resetKey }) {
           {SORT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
       </Field>
+      {onClear && <Button type="button" variant="tertiary" onClick={onClear} className="self-start">Clear filters</Button>}
       {/* Enter in a text field submits; this keeps the form valid for assistive tech without a visible button. */}
       <button type="submit" className="sr-only">Apply filters</button>
     </form>

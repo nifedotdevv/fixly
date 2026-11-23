@@ -1,4 +1,4 @@
-import { SplitTape } from '../../../components/tape/index.js'
+import { SplitBar } from '../../../components/progress/index.js'
 import { formatMoney } from '../../../lib/money.js'
 import { formatDateTime } from '../../../lib/time.js'
 import { windowText, windowZone } from './format.js'
@@ -13,12 +13,14 @@ export default function QuotePanel({ quote }) {
         <span className="text-fg-2">Total </span>
         <span className="tabular text-h3 font-medium">{formatMoney(quote.total)}</span>
       </p>
-      <SplitTape
-        total={quote.total.amount}
-        depositAmount={quote.depositAmount}
-        balanceAmount={quote.balanceAmount}
-        currency={currency}
-      />
+      <div className="rounded-lg bg-surface-2 p-4">
+        <SplitBar
+          total={quote.total.amount}
+          depositAmount={quote.depositAmount}
+          balanceAmount={quote.balanceAmount}
+          currency={currency}
+        />
+      </div>
       <dl className="flex flex-col gap-1 text-caption text-fg-2">
         <div className="flex flex-wrap gap-x-2">
           <dt>Quote valid until</dt>

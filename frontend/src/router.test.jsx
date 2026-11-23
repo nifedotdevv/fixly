@@ -116,7 +116,7 @@ test('signing out from the account menu goes to the home page', async () => {
   mockApi({ role: 'artisan' })
   setToken('t')
   renderAt('/requests')
-  await user.click(await screen.findByRole('button', { name: 'Account menu' }))
+  await user.click((await screen.findAllByRole('button', { name: 'Account menu' }))[0])
   await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }))
   await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/))
 })
@@ -133,4 +133,46 @@ test('a password change lands on login with its notice, not on the home page', a
   await user.click(pw.getByRole('button', { name: 'Change password' }))
   expect(await screen.findByText('Password changed. Sign in again.')).toBeInTheDocument()
   expect(screen.getByTestId('where')).toHaveTextContent(/^\/login$/)
+})
+
+test('signed out, /artisans uses the public layout', async () => {
+  mockApi({ role: 'house_owner' })
+  renderAt('/artisans')
+  expect((await screen.findAllByRole('link', { name: 'Sign in' })).length).toBeGreaterThan(0)
+  expect(screen.queryByTestId('nav-sidebar')).toBeNull()
+})
+
+test('signed in as a homeowner, /artisans sits in the app shell', async () => {
+  mockApi({ role: 'house_owner' })
+  setToken('t')
+  renderAt('/artisans')
+  const side = await screen.findByTestId('nav-sidebar')
+  expect(within(side).getByRole('link', { name: 'Find an artisan' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.queryByRole('link', { name: 'Open dashboard' })).toBeNull()
+})
+
+test('signed in, /artisans/:id sits in the app shell', async () => {
+  mockApi({ role: 'house_owner' })
+  setToken('t')
+  renderAt('/artisans/123')
+  const side = await screen.findByTestId('nav-sidebar')
+  expect(within(side).getByRole('link', { name: 'Find an artisan' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('while auth loads, /artisans shows the loading skeleton and no public nav', async () => {
+  mockApi({ role: 'house_owner' })
+  setToken('t')
+  renderAt('/artisans')
+  expect(screen.getByRole('status', { name: 'Loading…' })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull()
+  expect(screen.queryByRole('navigation', { name: 'Main' })).toBeNull()
+  await screen.findByTestId('nav-sidebar')
+})
+
+test('an admin gets the app shell with admin nav on /artisans', async () => {
+  mockApi({ role: 'admin' })
+  setToken('t')
+  renderAt('/artisans')
+  const side = await screen.findByTestId('nav-sidebar')
+  expect(within(side).getByRole('link', { name: 'Users' })).toBeInTheDocument()
 })

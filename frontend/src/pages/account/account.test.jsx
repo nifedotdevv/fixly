@@ -173,3 +173,29 @@ test('removing a photo that already cleared server-side closes the dialog with a
   expect(screen.queryByRole('alertdialog')).toBeNull()
   me.avatar = null
 })
+
+test('the page has one h1 and a section nav whose links point at existing sections', () => {
+  setup()
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  const links = within(screen.getByRole('navigation', { name: 'Account sections' })).getAllByRole('link')
+  expect(links.map((l) => l.textContent)).toEqual(['Profile', 'Photo', 'Email', 'Password', 'Sessions', 'Delete account'])
+  for (const link of links) {
+    const target = document.getElementById(link.getAttribute('href').slice(1))
+    expect(target).not.toBeNull()
+    expect(target.tagName).toBe('SECTION')
+  }
+})
+
+test('every section is a labelled region', () => {
+  setup()
+  for (const name of ['Profile', 'Photo', 'Email', 'Password', 'Sessions', 'Delete account']) {
+    expect(screen.getByRole('region', { name })).toBeInTheDocument()
+  }
+})
+
+test('the danger actions open an alertdialog', async () => {
+  const user = userEvent.setup()
+  setup()
+  await user.click(screen.getByRole('button', { name: 'Sign out on all devices' }))
+  expect(await screen.findByRole('alertdialog')).toBeInTheDocument()
+})

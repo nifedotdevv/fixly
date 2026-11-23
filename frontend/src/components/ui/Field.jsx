@@ -10,7 +10,7 @@ export default function Field({ label, helper, error, children, className = '' }
   const child = Children.only(children)
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <label htmlFor={id} className="font-medium text-fg">{label}</label>
+      <label htmlFor={id} className="text-small font-medium text-fg">{label}</label>
       {cloneElement(child, { id, 'aria-describedby': describedBy, 'aria-invalid': error ? true : undefined })}
       {helper && <p id={helperId} className="text-caption text-muted">{helper}</p>}
       {/* Always mounted so screen readers announce text changes reliably. */}

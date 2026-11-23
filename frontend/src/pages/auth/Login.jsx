@@ -4,8 +4,9 @@ import { Button, Field, Input } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { safeNext } from '../../auth/roles.js'
 import { useAuth } from '../../auth/useAuth.js'
+import AuthFrame from './AuthFrame.jsx'
 
-const LINK = 'text-accent underline underline-offset-4 hover:text-accent-hover'
+const LINK = 'link'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -44,8 +45,7 @@ export default function Login() {
   const registerTo = next ? `/register?next=${encodeURIComponent(next)}` : '/register'
 
   return (
-    <div className="flex max-w-md flex-col gap-6 py-8">
-      <h1>Sign in</h1>
+    <AuthFrame title="Sign in" intro="Pick up your requests where you left them.">
       {notice && <p role="status" className="rounded-sm bg-info-soft p-3 text-fg">{notice}</p>}
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         {rejected && (
@@ -61,14 +61,17 @@ export default function Login() {
         <Field label="Email" error={fieldError('email')}>
           <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label="Password" error={fieldError('password')}>
-          <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </Field>
+        <div className="flex flex-col gap-2">
+          <Field label="Password" error={fieldError('password')}>
+            <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          {!rejected && <Link to="/forgot-password" className={`${LINK} self-start text-small`}>Forgot password?</Link>}
+        </div>
         <Button type="submit" loading={loading} loadingLabel="Signing in…" className="self-start">Sign in</Button>
       </form>
       <p className="text-fg-2">
         New to Fixly? <Link to={registerTo} className={LINK}>Create an account</Link>
       </p>
-    </div>
+    </AuthFrame>
   )
 }

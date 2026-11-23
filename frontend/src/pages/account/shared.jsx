@@ -1,20 +1,33 @@
 import { Link } from 'react-router'
+import { TriangleAlert } from 'lucide-react'
 
-import { LINK } from './helpers.js'
+import { Panel } from '../../components/ui/index.js'
+import { LINK, sectionId } from './helpers.js'
 
 export function Section({ title, description, danger = false, children }) {
+  const heading = danger ? (
+    <span className="flex items-center gap-2">
+      <TriangleAlert size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-fg-2" />
+      {title}
+    </span>
+  ) : title
+  const desc = danger && description
+    ? <span className="inline-block rounded-sm bg-error-soft px-2 py-0.5 text-fg">{description}</span>
+    : description
   return (
-    <section
-      aria-labelledby={`${title.replace(/\W+/g, '-').toLowerCase()}-title`}
-      className={`grid gap-6 rounded-md border bg-surface p-4 sm:p-6 lg:grid-cols-[16rem_1fr] lg:gap-10 ${danger ? 'border-error' : 'border-border'}`}
-    >
-      <div className="flex flex-col gap-2">
-        <h2 id={`${title.replace(/\W+/g, '-').toLowerCase()}-title`}>{title}</h2>
-        {description && <p className="text-fg-2">{description}</p>}
-      </div>
-      <div className="flex max-w-md flex-col gap-4">{children}</div>
-    </section>
+    <Panel id={sectionId(title)} title={heading} description={desc} className="scroll-mt-6">
+      {children}
+    </Panel>
   )
+}
+
+// Fields column, kept to a readable width while the panel spans the page.
+export function Fields({ children }) {
+  return <div className="flex max-w-md flex-col gap-4">{children}</div>
+}
+
+export function SectionFooter({ children }) {
+  return <div className="mt-6 flex justify-start border-t border-border pt-4 sm:justify-end">{children}</div>
 }
 
 export function Notice({ tone = 'error', children }) {

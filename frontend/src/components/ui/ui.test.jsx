@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ConfirmDialog, MoneyInput, DateTimeInput, ChipsInput, Button } from './index.js'
+import Select from './Select.jsx'
+import { Inbox } from 'lucide-react'
+import { MemoryRouter, useLocation } from 'react-router'
+import { Tabs, FilterBar, ConfirmDialog, MoneyInput, DateTimeInput, ChipsInput, Button, Panel, PageHeader, EmptyState, DataRow, SkeletonRows } from './index.js'
 
 test('ConfirmDialog traps focus, gates confirm on typed text and returns focus to the trigger', async () => {
   const user = userEvent.setup()
@@ -133,4 +136,169 @@ test('ChipsInput explains a duplicate instead of dropping it silently', async ()
   await user.type(input, 'Yaba,')
   expect(screen.getAllByText('“yaba” is already added.').length).toBeGreaterThan(0)
   expect(input).toHaveFocus()
+})
+
+test('Select is found by label, changes value, and passes props to the native select', async () => {
+  const user = userEvent.setup()
+  const onChange = vi.fn()
+  const { container } = render(
+    <label>
+      Trade
+      <Select name="trade" data-testid="sel" aria-describedby="hint" defaultValue="a" onChange={onChange}>
+        <option value="a">Plumber</option>
+        <option value="b">Electrician</option>
+      </Select>
+    </label>,
+  )
+  const select = screen.getByLabelText('Trade')
+  expect(select.tagName).toBe('SELECT')
+  expect(select).toHaveAttribute('name', 'trade')
+  expect(select).toHaveAttribute('aria-describedby', 'hint')
+  expect(select).toHaveAttribute('data-testid', 'sel')
+  await user.selectOptions(select, 'b')
+  expect(select).toHaveValue('b')
+  expect(onChange).toHaveBeenCalledTimes(1)
+  expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+})
+
+test('Panel is a section labelled by its title, shows the action, and flush drops body padding', () => {
+  const { rerender } = render(<Panel title="Payments" action={<button type="button">Add</button>}>Body</Panel>)
+  const region = screen.getByRole('region', { name: 'Payments' })
+  expect(screen.getByRole('heading', { level: 2, name: 'Payments' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
+  expect(region).toHaveClass('p-5')
+  rerender(<Panel title="Payments" flush>Body</Panel>)
+  expect(screen.getByRole('region', { name: 'Payments' })).not.toHaveClass('p-5')
+})
+
+test('PageHeader renders one h1, a polite summary and actions', () => {
+  render(<PageHeader title="Requests" summary="3 open" actions={<button type="button">New</button>} />)
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  expect(screen.getByRole('heading', { level: 1, name: 'Requests' })).toBeInTheDocument()
+  expect(screen.getByText('3 open')).toHaveAttribute('aria-live', 'polite')
+  expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument()
+})
+
+test('EmptyState renders message, action and an aria-hidden icon', () => {
+  const { container } = render(<EmptyState icon={Inbox} message="Nothing here." action={<button type="button">Start</button>} />)
+  expect(screen.getByText('Nothing here.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument()
+  expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+})
+
+const TAB_ITEMS = [
+  { value: 'needs', label: 'Needs you', count: 1 },
+  { value: 'waiting', label: 'Waiting', count: 0 },
+  { value: 'finished', label: 'Finished' },
+]
+const Where = () => <output data-testid="loc">{useLocation().search}</output>
+const renderTabs = (props, entry = '/x') => render(
+  <MemoryRouter initialEntries={[entry]}>
+    <Tabs label="Request groups" items={TAB_ITEMS} {...props}>{(v) => <p>{`Panel ${v}`}</p>}</Tabs>
+    <Where />
+  </MemoryRouter>,
+)
+
+test('Tabs render role=tab with counts and a readable accessible name', () => {
+  renderTabs({})
+  expect(screen.getAllByRole('tab')).toHaveLength(3)
+  expect(screen.getByRole('tab', { name: 'Needs you, 1' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: 'Finished' })).toBeInTheDocument()
+  expect(screen.getByRole('tablist', { name: 'Request groups' })).toBeInTheDocument()
+})
+
+test('clicking a tab selects it and shows its panel', async () => {
+  const user = userEvent.setup()
+  renderTabs({})
+  await user.click(screen.getByRole('tab', { name: 'Finished' }))
+  expect(screen.getByRole('tab', { name: 'Finished' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel finished')
+})
+
+test('arrow, Home and End keys move focus and selection', async () => {
+  const user = userEvent.setup()
+  renderTabs({})
+  screen.getByRole('tab', { name: 'Needs you, 1' }).focus()
+  await user.keyboard('{ArrowRight}')
+  expect(screen.getByRole('tab', { name: /Waiting/ })).toHaveFocus()
+  expect(screen.getByRole('tab', { name: /Waiting/ })).toHaveAttribute('aria-selected', 'true')
+  await user.keyboard('{End}')
+  expect(screen.getByRole('tab', { name: 'Finished' })).toHaveAttribute('aria-selected', 'true')
+  await user.keyboard('{Home}')
+  expect(screen.getByRole('tab', { name: /Needs you/ })).toHaveFocus()
+})
+
+test('Tabs with param read the URL, keep other params and fall back on unknown values', async () => {
+  const user = userEvent.setup()
+  const { unmount } = renderTabs({ param: 'tab' }, '/x?tab=finished&status=pending')
+  expect(screen.getByRole('tab', { name: 'Finished' })).toHaveAttribute('aria-selected', 'true')
+  await user.click(screen.getByRole('tab', { name: 'Needs you, 1' }))
+  expect(screen.getByTestId('loc')).toHaveTextContent('tab=needs')
+  expect(screen.getByTestId('loc')).toHaveTextContent('status=pending')
+  unmount()
+  renderTabs({ param: 'tab', defaultValue: 'waiting' }, '/x?tab=bogus')
+  expect(screen.getByRole('tab', { name: /Waiting/ })).toHaveAttribute('aria-selected', 'true')
+})
+
+test('FilterBar is a labelled group and shows Clear filters only when it can clear', async () => {
+  const user = userEvent.setup()
+  const onClear = vi.fn()
+  const { rerender } = render(<FilterBar onClear={onClear}><span>child</span></FilterBar>)
+  expect(screen.getByRole('group', { name: 'Filters' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+  rerender(<FilterBar onClear={onClear} canClear><span>child</span></FilterBar>)
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+  expect(onClear).toHaveBeenCalledTimes(1)
+})
+
+describe('DataRow', () => {
+  const renderRow = (props) => render(
+    <MemoryRouter>
+      <ul>
+        <DataRow {...props}>
+          <DataRow.Cell>Fix tap</DataRow.Cell>
+          <DataRow.Cell numeric align="end">120</DataRow.Cell>
+        </DataRow>
+      </ul>
+    </MemoryRouter>,
+  )
+
+  test('is one link with the right href containing every cell', () => {
+    renderRow({ to: '/requests/1' })
+    const links = screen.getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAttribute('href', '/requests/1')
+    expect(links[0]).toHaveTextContent('Fix tap')
+    expect(links[0]).toHaveTextContent('120')
+  })
+
+  test('numeric cell is tabular and end aligned', () => {
+    renderRow({ to: '/r' })
+    const cell = screen.getByText('120')
+    expect(cell).toHaveClass('tabular', 'text-right')
+  })
+
+  test('selected sets aria-current, and accepts an override', () => {
+    const { unmount } = renderRow({ to: '/r', selected: true })
+    expect(screen.getByRole('link')).toHaveAttribute('aria-current', 'true')
+    unmount()
+    renderRow({ to: '/r', selected: true, 'aria-current': 'page' })
+    expect(screen.getByRole('link')).toHaveAttribute('aria-current', 'page')
+  })
+
+  test('as="div" renders no link', () => {
+    renderRow({ as: 'div' })
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  test('compact applies the 40px minimum height', () => {
+    renderRow({ to: '/r', compact: true })
+    expect(screen.getByRole('link')).toHaveClass('min-h-10')
+  })
+})
+
+test('SkeletonRows renders count aria-hidden rows', () => {
+  const { container } = render(<SkeletonRows count={3} />)
+  expect(container.firstChild).toHaveAttribute('aria-hidden', 'true')
+  expect(container.querySelectorAll('[data-skeleton-row]')).toHaveLength(3)
 })

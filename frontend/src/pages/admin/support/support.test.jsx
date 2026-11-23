@@ -60,11 +60,41 @@ test('empty states', async () => {
   expect(await screen.findByText('No payments need reconciliation.')).toBeInTheDocument()
 })
 
-test('queue tabs show totals', async () => {
+test('the queues drop the tab strip and show the count in the header summary', async () => {
   route({ 'GET /admin/support/requests': ok([doc], 3), 'GET /admin/support/payments': ok([payment], 5) })
-  mount('/admin/support/problems')
-  expect(await screen.findByRole('link', { name: 'Problems (3)' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Payments (5)' })).toBeInTheDocument()
+  const first = mount('/admin/support/problems')
+  expect(await screen.findByText('3 problems waiting')).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: 'Support queues' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /^(Problems|Payments)( \(\d+\))?$/ })).not.toBeInTheDocument()
+  first.unmount()
+
+  mount('/admin/support/payments')
+  expect(await screen.findByText('5 payments to reconcile')).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: 'Support queues' })).not.toBeInTheDocument()
+})
+
+test('each queue has one h1 and lists its rows', async () => {
+  route({ 'GET /admin/support/requests': ok([doc]), 'GET /admin/support/payments': ok([payment]) })
+  const first = mount('/admin/support/problems')
+  const list = await screen.findByRole('list', { name: 'Reported problems' })
+  expect(within(list).getAllByRole('listitem')).toHaveLength(1)
+  expect(within(list).getByRole('link')).toHaveAttribute('href', '/admin/support/problems/req1')
+  expect(screen.getByRole('heading', { level: 1, name: 'Problems' })).toBeInTheDocument()
+  first.unmount()
+
+  mount('/admin/support/payments')
+  const rows = await screen.findByRole('list', { name: 'Payments to reconcile' })
+  expect(within(rows).getAllByRole('listitem')).toHaveLength(1)
+  expect(within(rows).getByRole('button', { name: 'Resolve' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { level: 1, name: 'Payments' })).toBeInTheDocument()
+})
+
+test('the problem detail has a back link and hides ids', async () => {
+  route({ 'GET /admin/support/requests/req1': ok(doc) })
+  mount('/admin/support/problems/req1')
+  expect(await screen.findByRole('link', { name: 'Back to problems' })).toHaveAttribute('href', '/admin/support/problems')
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  expect(screen.queryByText(/0001|0002/)).not.toBeInTheDocument()
 })
 
 async function fillNote(user, text) {

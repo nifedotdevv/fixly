@@ -4,7 +4,7 @@ import WrongRole from '../pages/WrongRole.jsx'
 import { safeNext } from './roles.js'
 import { useAuth } from './useAuth.js'
 
-function PageSkeleton() {
+export function PageSkeleton() {
   return (
     <div role="status" aria-label="Loading…" className="flex flex-col gap-4 py-8">
       <Skeleton className="h-9 w-64" />

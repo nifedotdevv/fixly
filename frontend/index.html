@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#F5F8F9" />
+    <meta name="theme-color" content="#FCFBF8" />
+    <script>
+      // Apply the saved theme before first paint (see src/lib/theme.js).
+      try {
+        var t = localStorage.getItem('fixly-theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+        var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#09111E')
+      } catch (e) {}
+    </script>
     <title>Fixly</title>
   </head>
   <body>

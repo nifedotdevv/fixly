@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" role="img" aria-labelledby="title">
   <title id="title">Artisan default avatar</title>
   <!-- Adapted from Lucide hard-hat. Copyright (c) 2026 Lucide Icons and Contributors. ISC; see LICENSE.lucide.txt. -->
-  <circle cx="24" cy="24" r="24" fill="#fef3c7" />
-  <g transform="translate(12 12)" fill="none" stroke="#92400e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="24" cy="24" r="24" fill="#f9f3b4" />
+  <g transform="translate(12 12)" fill="none" stroke="#071a31" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
   <path d="M14 6a6 6 0 0 1 6 6v3" />
   <path d="M4 15v-3a6 6 0 0 1 6-6" />

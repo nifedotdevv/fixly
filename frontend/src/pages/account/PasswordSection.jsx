@@ -4,9 +4,10 @@ import { Button, Field, Input } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { clearSession } from '../../lib/session.js'
 import { queryClient } from '../../lib/queryClient.js'
-import { LegacyNotice, Notice, Section } from './shared.jsx'
+import { Fields, LegacyNotice, Notice, Section, SectionFooter } from './shared.jsx'
 import { fieldErrors, useFocusFirstInvalid } from './helpers.js'
-import { RULES, passwordValid } from './passwordRules.js'
+import { passwordValid } from './passwordRules.js'
+import PasswordRuleList from './PasswordRuleList.jsx'
 
 export default function PasswordSection() {
   const navigate = useNavigate()
@@ -62,26 +63,20 @@ export default function PasswordSection() {
   return (
     <Section title="Password" description="Changing it signs you out on every device.">
       <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        {legacy && <LegacyNotice />}
-        {failure && <Notice>{failure}</Notice>}
-        <Field label="Current password" error={errs.currentPassword}>
-          <Input type="password" autoComplete="current-password" value={form.currentPassword} onChange={set('currentPassword')} />
-        </Field>
-        <Field label="New password" error={errs.password}>
-          <Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} />
-        </Field>
-        <ul aria-label="Password rules" className="flex flex-col gap-1 text-caption">
-          {RULES.map((r) => {
-            const ok = r.ok(form.password)
-            return (
-              <li key={r.id} className={ok ? 'text-success' : 'text-muted'}>
-                {r.label}
-                <span className="sr-only">{ok ? ' (met)' : ' (not met)'}</span>
-              </li>
-            )
-          })}
-        </ul>
-        <Button type="submit" loading={loading} loadingLabel="Changing password…" className="self-start">Change password</Button>
+        <Fields>
+          {legacy && <LegacyNotice />}
+          {failure && <Notice>{failure}</Notice>}
+          <Field label="Current password" error={errs.currentPassword}>
+            <Input type="password" autoComplete="current-password" value={form.currentPassword} onChange={set('currentPassword')} />
+          </Field>
+          <Field label="New password" error={errs.password}>
+            <Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} />
+          </Field>
+          <PasswordRuleList password={form.password} />
+        </Fields>
+        <SectionFooter>
+          <Button type="submit" loading={loading} loadingLabel="Changing password…">Change password</Button>
+        </SectionFooter>
       </form>
     </Section>
   )

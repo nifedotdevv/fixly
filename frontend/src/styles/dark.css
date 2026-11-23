@@ -1,0 +1,65 @@
+/* Dark theme. Follows the OS unless the user picks one: lib/theme.js sets data-theme on <html>
+   ("light" or "dark"); with no attribute the media query decides. Ink flips to near-white so the
+   primary button stays the highest-contrast element. Lemon and lime keep their fill values and
+   always carry on-bright navy text; their soft tints become deep olive and green. The band,
+   hero gradient and on-band text are the same in both themes. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: rgb(9 17 30);
+    --color-surface: rgb(16 27 43);
+    --color-surface-2: rgb(24 37 56);
+    --color-fg: rgb(236 240 244);
+    --color-fg-2: rgb(200 208 217);
+    --color-muted: rgb(152 165 179);
+    --color-border: rgb(236 240 244 / 0.12);
+    --color-divider: rgb(44 59 80);
+    --color-border-strong: rgb(118 134 151);
+    --color-ink: rgb(236 240 244);
+    --color-ink-hover: rgb(208 216 225);
+    --color-on-ink: rgb(7 26 49);
+    --color-tint: rgb(236 240 244 / 0.07);
+    --color-band: rgb(4 10 20);
+    --color-scrim: rgb(0 0 0 / 0.6);
+    --color-accent-soft: oklch(0.33 0.06 105);
+    --color-lime-soft: oklch(0.32 0.065 128);
+    --color-success: oklch(0.79 0.11 165); --color-success-soft: oklch(0.30 0.05 165);
+    --color-warning: oklch(0.80 0.12 60); --color-warning-soft: oklch(0.31 0.06 55);
+    --color-error: oklch(0.75 0.14 27); --color-error-soft: oklch(0.31 0.07 25);
+    --color-info: oklch(0.79 0.09 240); --color-info-soft: oklch(0.30 0.05 240);
+    --shadow-overlay: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.35);
+    --shadow-raised: 0 20px 48px -12px rgb(0 0 0 / 0.5);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-nav: 0 1px 0 rgb(236 240 244 / 0.08), 0 6px 12px rgb(0 0 0 / 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: rgb(9 17 30);
+  --color-surface: rgb(16 27 43);
+  --color-surface-2: rgb(24 37 56);
+  --color-fg: rgb(236 240 244);
+  --color-fg-2: rgb(200 208 217);
+  --color-muted: rgb(152 165 179);
+  --color-border: rgb(236 240 244 / 0.12);
+  --color-divider: rgb(44 59 80);
+  --color-border-strong: rgb(118 134 151);
+  --color-ink: rgb(236 240 244);
+  --color-ink-hover: rgb(208 216 225);
+  --color-on-ink: rgb(7 26 49);
+  --color-tint: rgb(236 240 244 / 0.07);
+  --color-band: rgb(4 10 20);
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --color-accent-soft: oklch(0.33 0.06 105);
+  --color-lime-soft: oklch(0.32 0.065 128);
+  --color-success: oklch(0.79 0.11 165); --color-success-soft: oklch(0.30 0.05 165);
+  --color-warning: oklch(0.80 0.12 60); --color-warning-soft: oklch(0.31 0.06 55);
+  --color-error: oklch(0.75 0.14 27); --color-error-soft: oklch(0.31 0.07 25);
+  --color-info: oklch(0.79 0.09 240); --color-info-soft: oklch(0.30 0.05 240);
+  --shadow-overlay: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.35);
+  --shadow-raised: 0 20px 48px -12px rgb(0 0 0 / 0.5);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-nav: 0 1px 0 rgb(236 240 244 / 0.08), 0 6px 12px rgb(0 0 0 / 0.35);
+}

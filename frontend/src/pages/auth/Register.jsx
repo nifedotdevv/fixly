@@ -3,19 +3,14 @@ import { Link, useSearchParams } from 'react-router'
 import { Button, Field, Input, LinkButton } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { safeNext } from '../../auth/roles.js'
+import AuthFrame from './AuthFrame.jsx'
+import PasswordRuleList from '../account/PasswordRuleList.jsx'
+import { passwordValid } from '../account/passwordRules.js'
 
-const LINK = 'text-accent underline underline-offset-4 hover:text-accent-hover'
+const LINK = 'link'
 const ROLES = [
   { value: 'house_owner', label: 'I need work done' },
   { value: 'artisan', label: 'I do the work' },
-]
-const byteLength = (s) => new TextEncoder().encode(s).length
-const RULES = [
-  { id: 'length', label: '10 or more characters', ok: (p) => p.length >= 10 },
-  { id: 'upper', label: 'An uppercase letter', ok: (p) => /[A-Z]/.test(p) },
-  { id: 'lower', label: 'A lowercase letter', ok: (p) => /[a-z]/.test(p) },
-  { id: 'digit', label: 'A number', ok: (p) => /[0-9]/.test(p) },
-  { id: 'bytes', label: '72 bytes or fewer', ok: (p) => p.length <= 100 && byteLength(p) <= 72 },
 ]
 
 export default function Register() {
@@ -31,7 +26,7 @@ export default function Register() {
   const [failure, setFailure] = useState('')
 
   const set = (name) => (e) => setForm((f) => ({ ...f, [name]: e.target.value }))
-  const rulesMet = RULES.every((r) => r.ok(form.password))
+  const rulesMet = passwordValid(form.password)
   const loginTo = next ? `/login?next=${encodeURIComponent(next)}` : '/login'
 
   async function onSubmit(e) {
@@ -60,11 +55,10 @@ export default function Register() {
 
   if (done) {
     return (
-      <div className="flex max-w-md flex-col gap-6 py-8">
-        <h1>Check your inbox</h1>
+      <AuthFrame title="Check your inbox">
         <p role="status" className="text-fg-2">Check your inbox to verify your email, then sign in.</p>
         <LinkButton to={loginTo} className="self-start">Sign in</LinkButton>
-      </div>
+      </AuthFrame>
     )
   }
 
@@ -72,8 +66,7 @@ export default function Register() {
   const unmatched = errors.filter((x) => !['firstName', 'lastName', 'email', 'password'].includes(x.field))
 
   return (
-    <div className="flex max-w-md flex-col gap-6 py-8">
-      <h1>Create your account</h1>
+    <AuthFrame title="Create your account" intro="Book an inspection or take on jobs.">
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         {conflict?.days !== undefined && (
           <div role="alert" className="flex flex-col gap-1 rounded-sm bg-warning-soft p-3 text-fg">
@@ -99,8 +92,8 @@ export default function Register() {
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 font-medium text-fg">I am joining Fixly as</legend>
           {ROLES.map((r) => (
-            <label key={r.value} className="flex min-h-11 items-center gap-3 rounded-sm border border-border-strong bg-surface px-3 has-checked:border-accent has-checked:bg-accent-soft has-focus-visible:outline-2 has-focus-visible:outline-accent">
-              <input type="radio" name="role" value={r.value} checked={role === r.value} onChange={() => setRole(r.value)} className="accent-accent" />
+            <label key={r.value} className="flex min-h-11 items-center gap-3 rounded-sm border border-border-strong bg-surface px-3 has-checked:border-ink has-checked:bg-accent-soft has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink">
+              <input type="radio" name="role" value={r.value} checked={role === r.value} onChange={() => setRole(r.value)} className="accent-ink" />
               {r.label}
             </label>
           ))}
@@ -117,23 +110,13 @@ export default function Register() {
         <Field label="Password" error={fieldError('password')}>
           <Input type="password" autoComplete="new-password" required value={form.password} onChange={set('password')} />
         </Field>
-        <ul aria-label="Password rules" className="flex flex-col gap-1 text-caption">
-          {RULES.map((r) => {
-            const ok = r.ok(form.password)
-            return (
-              <li key={r.id} className={ok ? 'text-success' : 'text-muted'}>
-                {r.label}
-                <span className="sr-only">{ok ? ' (met)' : ' (not met)'}</span>
-              </li>
-            )
-          })}
-        </ul>
+        <PasswordRuleList password={form.password} />
         <div>
           <button
             type="button"
             aria-expanded={hasPrevious}
             onClick={() => setHasPrevious((v) => !v)}
-            className="text-accent underline underline-offset-4 hover:text-accent-hover"
+            className="link"
           >
             I deleted a Fixly account with this email before
           </button>
@@ -148,6 +131,6 @@ export default function Register() {
       <p className="text-fg-2">
         Already have an account? <Link to={loginTo} className={LINK}>Sign in</Link>
       </p>
-    </div>
+    </AuthFrame>
   )
 }

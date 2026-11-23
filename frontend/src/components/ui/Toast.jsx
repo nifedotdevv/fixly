@@ -32,20 +32,20 @@ export function ToastProvider({ children }) {
               key={id}
               type="background"
               onOpenChange={(open) => { if (!open) setItems((cur) => cur.filter((t) => t.id !== id)) }}
-              className="ui-toast flex items-start gap-3 rounded-md bg-surface p-4 shadow-overlay"
+              className="ui-toast flex items-start gap-3 rounded-md border border-border bg-surface p-4 shadow-overlay"
             >
               <Icon size={20} strokeWidth={1.75} aria-hidden="true" className={cn('mt-0.5 shrink-0', cls)} />
               <RadixToast.Title className="flex-1 text-fg">{title}</RadixToast.Title>
               <RadixToast.Close
                 aria-label="Dismiss"
-                className={cn('-m-2 size-11 inline-flex items-center justify-center rounded-sm text-fg-2 hover:bg-surface-inset', MOTION)}
+                className={cn('-m-2 size-11 inline-flex items-center justify-center rounded-sm text-fg-2 hover:bg-surface-2', MOTION)}
               >
                 <X size={16} strokeWidth={1.75} aria-hidden="true" />
               </RadixToast.Close>
             </RadixToast.Root>
           )
         })}
-        <RadixToast.Viewport className="fixed bottom-0 right-0 z-50 flex w-full max-w-sm flex-col gap-3 p-4 outline-none" />
+        <RadixToast.Viewport className="ui-toast-viewport fixed bottom-0 right-0 z-50 flex w-full max-w-sm flex-col gap-3 p-4 outline-none" />
       </RadixToast.Provider>
     </ToastContext.Provider>
   )

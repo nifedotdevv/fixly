@@ -4,7 +4,7 @@ import { Button, ConfirmDialog, Input } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { clearSession } from '../../lib/session.js'
 import { queryClient } from '../../lib/queryClient.js'
-import { Section } from './shared.jsx'
+import { Section, SectionFooter } from './shared.jsx'
 import { LINK } from './helpers.js'
 
 function endSession(navigate, notice) {
@@ -30,9 +30,10 @@ export function SessionsSection() {
   }
 
   return (
-    <Section title="Sessions" description="Ends every active sign-in, including this one.">
-      <ConfirmDialog
-        trigger={<Button variant="secondary" className="self-start">Sign out on all devices</Button>}
+    <Section danger title="Sessions" description="Ends every active sign-in, including this one.">
+      <SectionFooter>
+        <ConfirmDialog
+        trigger={<Button variant="secondary">Sign out on all devices</Button>}
         title="Sign out on all devices?"
         description="You will need to sign in again everywhere, including here."
         confirmLabel="Sign out on all devices"
@@ -41,7 +42,8 @@ export function SessionsSection() {
         error={error}
         onOpenChange={(o) => o && setError('')}
         onConfirm={confirm}
-      />
+        />
+      </SectionFooter>
     </Section>
   )
 }
@@ -91,8 +93,9 @@ export function DeleteSection() {
 
   return (
     <Section danger title="Delete account" description="Deleting hides your account. You can reactivate it within 30 days.">
+      <SectionFooter>
       <ConfirmDialog
-        trigger={<Button variant="secondary" className="self-start">Delete account</Button>}
+        trigger={<Button variant="secondary">Delete account</Button>}
         title="Delete your account?"
         description="You can reactivate it within 30 days from the sign-in page. Enter your password to delete it."
         confirmLabel="Delete my account"
@@ -103,6 +106,7 @@ export function DeleteSection() {
       >
         {fields}
       </ConfirmDialog>
+      </SectionFooter>
     </Section>
   )
 }

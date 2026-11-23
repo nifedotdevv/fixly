@@ -29,3 +29,8 @@
   .ui-toast[data-state="open"] { animation-name: ui-fade-in; }
 }
 .ui-dialog { overscroll-behavior: contain; }
+
+/* Only the signed-in shell has a bottom tab bar (below 1024px); BottomTabs sets data-has-tabbar on <html>. */
+@media (max-width: 63.999rem) {
+  html[data-has-tabbar] .ui-toast-viewport { bottom: calc(4rem + env(safe-area-inset-bottom)); }
+}

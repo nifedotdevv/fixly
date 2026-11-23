@@ -102,6 +102,14 @@ const PAYMENT_WAITING = ['awaiting_inspection_payment', 'awaiting_repair_deposit
 
 export const isPaymentWaiting = (status) => PAYMENT_WAITING.includes(status)
 
+const DEADLINE_LABEL = {
+  pending: 'Reply due',
+  awaiting_inspection_payment: 'Payment due',
+  quote_submitted: 'Quote expires',
+  awaiting_repair_deposit: 'Deposit due',
+}
+export const deadlineLabel = (status) => DEADLINE_LABEL[status] ?? 'Ends'
+
 export function deadlineFor(view) {
   switch (view.status) {
     case 'pending':
