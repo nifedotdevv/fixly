@@ -18,6 +18,7 @@ import ArtisanDetail from './pages/artisans/Detail.jsx'
 import WorkspaceProfile from './pages/workspace/Profile.jsx'
 import NewRequest from './pages/requests/NewRequest.jsx'
 import RequestDetail from './pages/requests/RequestDetail.jsx'
+import { renderActionForm } from './pages/requests/actionForms.jsx'
 import RequestList from './pages/requests/RequestList.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Placeholder from './pages/Placeholder.jsx'
@@ -69,7 +70,7 @@ export default function AppRoutes() {
           </Route>
           <Route element={<RequireRole roles={PARTICIPANTS} />}>
             <Route path="requests" element={<RequestList />} />
-            <Route path="requests/:id" element={<RequestDetail />} />
+            <Route path="requests/:id" element={<RequestDetail renderActionForm={renderActionForm} />} />
           </Route>
           <Route element={<RequireRole roles={ARTISAN} />}>
             <Route path="workspace/profile" element={<WorkspaceProfile />} />
