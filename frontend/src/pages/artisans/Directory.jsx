@@ -116,6 +116,9 @@ export default function Directory() {
   const totalPages = query.data?.meta?.totalPages ?? 1
   const filters = <Filters resetKey={clearKey} values={values} onChange={change} error={badRequest} />
 
+  const total = query.data?.meta?.total ?? rows.length
+  const resultsLine = query.isSuccess && !badRequest ? `${total} ${total === 1 ? 'artisan' : 'artisans'}` : ''
+
   let results
   if (query.isPending) results = <Skeletons />
   else if (badRequest) results = null
@@ -157,7 +160,10 @@ export default function Directory() {
         <aside aria-label="Filters" className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto p-1 lg:block">
           {filters}
         </aside>
-        <div aria-live="polite" className="min-w-0">{results}</div>
+        <div className="min-w-0">
+          <p aria-live="polite" className="tabular mb-2 text-caption text-fg-2">{resultsLine}</p>
+          {results}
+        </div>
       </div>
     </div>
   )

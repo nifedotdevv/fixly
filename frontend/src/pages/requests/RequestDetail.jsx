@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { Tape } from '../../components/tape/index.js'
-import { ConflictNotice, EmptyState, ErrorState, LinkButton, Skeleton, StatusBadge } from '../../components/ui/index.js'
+import { ConflictNotice, ErrorState, LinkButton, Skeleton, StatusBadge } from '../../components/ui/index.js'
 import { useAuth } from '../../auth/useAuth.js'
 import { api, ApiError } from '../../lib/api.js'
 import { queryKeys } from '../../lib/queryClient.js'
@@ -27,13 +27,13 @@ function DetailSkeleton() {
   )
 }
 
+const titleOf = (view, role) => `${personOf(view, otherSide(role)).name}: ${statusMeta(view.status).label}`
+
 function Loaded({ view, role, refetch, renderActionForm }) {
   const mutation = useRequestAction(view.id)
-  const { name } = personOf(view, otherSide(role))
   const { label, tone } = statusMeta(view.status)
   const deadline = deadlineFor(view)
-  const title = `${name}: ${label}`
-  useDocumentTitle(title)
+  const title = titleOf(view, role)
   useCountdown(deadline, { onExpire: refetch })
 
   return (
@@ -68,17 +68,18 @@ export default function RequestDetail({ renderActionForm }) {
     queryFn: ({ signal }) => api(`/service-requests/${id}`, { signal }),
     refetchOnWindowFocus: true,
   })
-  useDocumentTitle('Request')
+  useDocumentTitle(query.data ? titleOf(query.data.data, me?.role) : 'Request')
 
   if (query.isPending) return <DetailSkeleton />
   if (query.isError) {
     const status = query.error instanceof ApiError ? query.error.status : 0
     if (status === 404 || status === 400) {
       return (
-        <EmptyState
-          message="This request doesn't exist or isn't yours."
-          action={<LinkButton to="/requests" variant="secondary">Back to requests</LinkButton>}
-        />
+        <div className="flex flex-col items-start gap-4 py-8">
+          <h1>Request not found</h1>
+          <p className="max-w-[60ch] text-fg-2">{"This request doesn't exist or isn't yours."}</p>
+          <LinkButton to="/requests" variant="secondary">Back to requests</LinkButton>
+        </div>
       )
     }
     return (

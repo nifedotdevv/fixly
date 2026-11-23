@@ -46,7 +46,7 @@ test('resend success toasts and starts a 60s cooldown', async () => {
   expect(url).toBe('/api/v1/auth/resend-verification')
   expect(init.method).toBe('POST')
   expect(init.body).toBe('{}')
-  const btn = screen.getByRole('button', { name: 'Sent' })
+  const btn = screen.getByRole('button', { name: /^Sent\./ })
   expect(btn).toBeDisabled()
 })
 
@@ -54,7 +54,7 @@ test('cooldown ends after 60s', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   setup({ email: 'a@b.co', emailVerified: false }, json(200, {}))
   await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole('button', { name: 'Resend link' }))
-  await screen.findByRole('button', { name: 'Sent' })
+  await screen.findByRole('button', { name: /^Sent\./ })
   act(() => vi.advanceTimersByTime(60_000))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Resend link' })).toBeEnabled())
 })

@@ -21,6 +21,9 @@ export default function ProblemsQueue() {
   const rows = query.data?.data ?? []
   const totalPages = query.data?.meta?.totalPages ?? 1
 
+  const total = query.data?.meta?.total ?? rows.length
+  const summary = query.isSuccess ? `${total} ${total === 1 ? 'problem' : 'problems'} waiting` : ''
+
   let body
   if (query.isPending) body = <TableSkeleton />
   else if (query.isError) {
@@ -30,7 +33,7 @@ export default function ProblemsQueue() {
     const { label, tone } = statusMeta('problem_reported')
     body = (
       <>
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Reported problems" tabIndex={0} className="overflow-x-auto">
           <table className="w-full min-w-[56rem] border-collapse">
             <caption className="sr-only">Reported problems, newest first</caption>
             <thead>
@@ -72,7 +75,10 @@ export default function ProblemsQueue() {
     <div className="flex flex-col gap-6 py-6">
       <h1>Support</h1>
       <SupportNav />
-      <div aria-live="polite" className="min-w-0">{body}</div>
+      <div className="min-w-0">
+        <p aria-live="polite" className="tabular mb-2 text-caption text-fg-2">{summary}</p>
+        {body}
+      </div>
     </div>
   )
 }

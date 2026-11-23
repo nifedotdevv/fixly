@@ -1,12 +1,21 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button, ConfirmDialog, Field, Textarea } from '../../../../components/ui/index.js'
 import { MAX, counter, messageOf } from './useTextField.js'
 
 export default function ProblemForm({ action, mutation }) {
   const [explanation, setExplanation] = useState('')
+  const [open, setOpen] = useState(false)
+  const [touched, setTouched] = useState(false)
+  const field = useRef(null)
   const trimmed = explanation.trim()
-  const valid = trimmed.length >= 1 && explanation.length <= MAX
+  const invalid = touched && !trimmed
   const message = messageOf(mutation)
+
+  function review() {
+    setTouched(true)
+    if (trimmed) setOpen(true)
+    else field.current?.focus()
+  }
 
   // A rejection keeps the dialog open so the error shows; a 409 resolves and closes it.
   const send = async () => {
@@ -16,13 +25,15 @@ export default function ProblemForm({ action, mutation }) {
 
   return (
     <div className="flex max-w-xl flex-col gap-3">
-      <Field label="What's wrong?" error={message}>
-        <Textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} maxLength={MAX} />
+      <Field label="What's wrong?" error={invalid ? 'Describe the problem.' : message}>
+        <Textarea ref={field} value={explanation} onChange={(e) => setExplanation(e.target.value)} maxLength={MAX} />
       </Field>
       <p className="tabular text-caption text-muted">{counter(explanation.length)}</p>
       <div>
+        <Button variant="secondary" onClick={review}>{action.label}</Button>
         <ConfirmDialog
-          trigger={<Button variant="destructive" disabled={!valid}>{action.label}</Button>}
+          open={open}
+          onOpenChange={setOpen}
           title="Report a problem?"
           description="Fixly support will review the job. Neither of you can complete it until support resolves it."
           confirmLabel="Report problem"

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Clock } from 'lucide-react'
 import { MILESTONES, milestoneFor, statusMeta } from '../../lib/requestStatus.js'
-import { formatRelative, formatTime } from '../../lib/time.js'
+import { formatRelative, formatDateTime } from '../../lib/time.js'
 import { useCountdown } from '../../lib/useCountdown.js'
 import { cn } from '../ui/cn.js'
 import './tape.css'
@@ -24,7 +24,7 @@ function describe({ status, deadline, milestone, label }) {
     const next = MILESTONES[milestone + 1]
     text = `Stage ${stage}: ${here}.${next ? ` Next: ${next}.` : ''}`
   }
-  if (deadline) text += ` Ends ${formatTime(deadline)}, ${formatRelative(deadline)}.`
+  if (deadline) text += ` Ends ${formatDateTime(deadline)}, ${formatRelative(deadline)}.`
   return text
 }
 
@@ -121,8 +121,8 @@ export default function Tape({ status, view, deadline = null, size = 'full' }) {
             <Clock size={16} strokeWidth={1.75} className="shrink-0" />
             <span className="tabular-nums">
               {countdown.expired
-                ? `Ended ${formatTime(deadline)}`
-                : `Ends ${formatTime(deadline)}, ${formatRelative(deadline)}`}
+                ? `Ended ${formatDateTime(deadline)}`
+                : `Ends ${formatDateTime(deadline)}, ${formatRelative(deadline)}`}
             </span>
           </p>
         )}

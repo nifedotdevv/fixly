@@ -175,12 +175,15 @@ test('completed shows the existing review', async () => {
   expect(screen.getByText(/4 out of 5/)).toBeInTheDocument()
 })
 
-test('actions with body fields are disabled placeholders', async () => {
+test('actions with body fields render nothing without a form', async () => {
   auth = { me: { role: 'artisan' } }
   serve({ 'GET /service-requests/r1': ok(FIXTURES.pending) })
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
   mount()
-  expect(await screen.findByRole('button', { name: 'Accept with inspection fee (coming next)' })).toBeDisabled()
-  expect(screen.getByRole('button', { name: 'Decline with reason (coming next)' })).toBeDisabled()
+  expect(await screen.findByRole('heading', { name: 'Your turn: reply to this request' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /Accept with inspection fee/ })).toBeNull()
+  expect(screen.queryByText(/coming next/)).toBeNull()
+  warn.mockRestore()
 })
 
 test('renderActionForm replaces the placeholder', async () => {
@@ -238,6 +241,16 @@ test('a 409 shows the conflict notice and refetches', async () => {
   await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Quote expired'))
 })
 
+test('the stage heading names the stage and the viewer role', async () => {
+  serve({ 'GET /service-requests/r1': ok(FIXTURES.quote_submitted) })
+  const first = mount()
+  expect(await screen.findByRole('heading', { level: 2, name: 'Your turn: review the quote' })).toBeInTheDocument()
+  first.unmount()
+  auth = { me: { role: 'artisan' } }
+  mount()
+  expect(await screen.findByRole('heading', { level: 2, name: 'Waiting for the homeowner to approve your quote' })).toBeInTheDocument()
+})
+
 test('a confirm action opens the dialog before posting', async () => {
   serve({
     'GET /service-requests/r1': ok(FIXTURES.quote_submitted),
@@ -247,6 +260,7 @@ test('a confirm action opens the dialog before posting', async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Decline quote' }))
   const dialog = await screen.findByRole('alertdialog')
   expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  expect(within(dialog).getByText("Decline Tunde Artisan's quote?")).toBeInTheDocument()
   await userEvent.click(within(dialog).getByRole('button', { name: 'Decline quote' }))
   expect(await screen.findByText('Quote declined')).toBeInTheDocument()
 })
@@ -270,7 +284,8 @@ test('participant fallback and history with zones', async () => {
 test('a missing request shows the not-found state', async () => {
   serve({})
   mount('nope')
-  expect(await screen.findByText("This request doesn't exist or isn't yours.")).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { level: 1, name: 'Request not found' })).toBeInTheDocument()
+  expect(screen.getByText("This request doesn't exist or isn't yours.")).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Back to requests' })).toHaveAttribute('href', '/requests')
 })
 

@@ -144,7 +144,7 @@ export default function PaymentsQueue() {
   else {
     body = (
       <>
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Payments to reconcile" tabIndex={0} className="overflow-x-auto">
           <table className="w-full min-w-[64rem] border-collapse">
             <caption className="sr-only">Payments that need reconciliation, newest first</caption>
             <thead>

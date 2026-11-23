@@ -3,6 +3,13 @@ import { Field, Input, Select } from '../../components/ui/index.js'
 import { PROFESSIONS } from './helpers.js'
 
 const TEXT_DELAY = 400
+// Each option maps to the backend sortBy and order, kept as separate URL params.
+const SORT_OPTIONS = [
+  ['createdAt:desc', 'Newest'],
+  ['experience_years:desc', 'Most experienced'],
+  ['starting_price:asc', 'Lowest starting price'],
+  ['starting_price:desc', 'Highest starting price'],
+]
 
 // Local text state, committed to the URL on submit or after a pause in typing.
 // resetKey changes when the page clears every filter: drop the typed text, which also cancels the pending commit.
@@ -60,16 +67,14 @@ export default function Filters({ values, onChange, error, resetKey }) {
         Available now only
       </label>
       <Field label="Sort by">
-        <Select value={values.sortBy} onChange={(e) => onChange({ sortBy: e.target.value })}>
-          <option value="createdAt">Newest</option>
-          <option value="experience_years">Experience</option>
-          <option value="starting_price">Starting price</option>
-        </Select>
-      </Field>
-      <Field label="Order">
-        <Select value={values.order} onChange={(e) => onChange({ order: e.target.value })}>
-          <option value="desc">High to low</option>
-          <option value="asc">Low to high</option>
+        <Select
+          value={`${values.sortBy}:${values.order}`}
+          onChange={(e) => {
+            const [sortBy, order] = e.target.value.split(':')
+            onChange({ sortBy, order })
+          }}
+        >
+          {SORT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
       </Field>
       {/* Enter in a text field submits; this keeps the form valid for assistive tech without a visible button. */}

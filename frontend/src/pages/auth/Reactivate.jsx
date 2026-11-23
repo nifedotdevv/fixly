@@ -48,7 +48,7 @@ export default function Reactivate() {
             <Field label="Password">
               <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </Field>
-            <Button type="submit" loading={loading} loadingLabel="Reactivating" className="self-start">Reactivate account</Button>
+            <Button type="submit" loading={loading} loadingLabel="Reactivating…" className="self-start">Reactivate account</Button>
           </form>
         </>
       )}

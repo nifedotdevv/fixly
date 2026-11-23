@@ -112,14 +112,14 @@ export default function PhotoSection({ me }) {
       </div>
       {error && <Notice><span id="avatar-error">{error}</span></Notice>}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={upload} loading={loading} loadingLabel="Uploading" disabled={!file}>Upload photo</Button>
+        <Button onClick={upload} loading={loading} loadingLabel="Uploading…" disabled={!file}>Upload photo</Button>
         {me.avatar?.url && (
           <ConfirmDialog
             trigger={<Button variant="secondary">Remove photo</Button>}
             title="Remove your photo?"
             description="Fixly will show the default avatar for your role instead."
             confirmLabel="Remove photo"
-            loadingLabel="Removing"
+            loadingLabel="Removing…"
             error={removeError}
             onOpenChange={(o) => o && setRemoveError('')}
             onConfirm={remove}

@@ -69,7 +69,7 @@ export default function EmailSection({ me }) {
         <Field label="New email" error={errs.email}>
           <Input type="email" autoComplete="email" value={form.email} onChange={set('email')} />
         </Field>
-        <Button type="submit" loading={loading} loadingLabel="Sending link" className="self-start">Change email</Button>
+        <Button type="submit" loading={loading} loadingLabel="Sending link…" className="self-start">Change email</Button>
       </form>
     </Section>
   )

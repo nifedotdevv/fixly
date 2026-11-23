@@ -64,7 +64,7 @@ export default function Login() {
         <Field label="Password" error={fieldError('password')}>
           <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
-        <Button type="submit" loading={loading} loadingLabel="Signing in" className="self-start">Sign in</Button>
+        <Button type="submit" loading={loading} loadingLabel="Signing in…" className="self-start">Sign in</Button>
       </form>
       <p className="text-fg-2">
         New to Fixly? <Link to={registerTo} className={LINK}>Create an account</Link>

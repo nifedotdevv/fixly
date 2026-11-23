@@ -158,7 +158,7 @@ function ProfileForm({ profile }) {
       <Panel title="Availability">
         <Availability profile={profile} create={create} value={available} onCreateChange={setAvailable} />
       </Panel>
-      <Button type="submit" loading={save.isPending} loadingLabel="Saving" disabled={!dirty} className="self-start">
+      <Button type="submit" loading={save.isPending} loadingLabel="Saving…" disabled={!dirty} className="self-start">
         {create ? 'Create profile' : 'Save changes'}
       </Button>
     </form>

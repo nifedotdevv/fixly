@@ -3,7 +3,7 @@ import { Tape } from '../../components/tape/index.js'
 import { Avatar, StatusBadge } from '../../components/ui/index.js'
 import { formatMoney } from '../../lib/money.js'
 import { deadlineFor, statusMeta } from '../../lib/requestStatus.js'
-import { formatRelative, formatTime } from '../../lib/time.js'
+import { formatRelative, formatDateTime } from '../../lib/time.js'
 
 const FALLBACK_NAME = 'Former Fixly user'
 
@@ -41,7 +41,7 @@ export default function RequestRow({ view, role }) {
           </div>
           {deadline && (
             <span className="text-caption text-warning">
-              Ends {formatTime(deadline)}, {formatRelative(deadline)}
+              Ends {formatDateTime(deadline)}, {formatRelative(deadline)}
             </span>
           )}
         </div>

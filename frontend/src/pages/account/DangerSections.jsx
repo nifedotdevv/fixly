@@ -36,7 +36,7 @@ export function SessionsSection() {
         title="Sign out on all devices?"
         description="You will need to sign in again everywhere, including here."
         confirmLabel="Sign out on all devices"
-        loadingLabel="Signing out"
+        loadingLabel="Signing out…"
         tone="primary"
         error={error}
         onOpenChange={(o) => o && setError('')}
@@ -92,11 +92,11 @@ export function DeleteSection() {
   return (
     <Section danger title="Delete account" description="Deleting hides your account. You can reactivate it within 30 days.">
       <ConfirmDialog
-        trigger={<Button variant="destructive" className="self-start">Delete account</Button>}
+        trigger={<Button variant="secondary" className="self-start">Delete account</Button>}
         title="Delete your account?"
         description="You can reactivate it within 30 days from the sign-in page. Enter your password to delete it."
         confirmLabel="Delete my account"
-        loadingLabel="Deleting"
+        loadingLabel="Deleting…"
         error={error}
         onOpenChange={(o) => { if (o) { setError(null); setInvalid(false); setPassword('') } }}
         onConfirm={confirm}

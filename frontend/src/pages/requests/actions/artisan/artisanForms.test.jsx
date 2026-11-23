@@ -101,6 +101,7 @@ describe('RejectForm', () => {
     render(<Form action={action} mutation={mutation} view={{}} />)
     await userEvent.click(screen.getByRole('button', { name: 'Decline request' }))
     expect(screen.getByText('Give the homeowner a reason')).toBeInTheDocument()
+    expect(screen.getByLabelText('Reason')).toHaveFocus()
     expect(mutation.mutateAsync).not.toHaveBeenCalled()
   })
   it('confirms then sends the reason', async () => {

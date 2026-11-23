@@ -56,11 +56,11 @@ export default function Landing() {
         <div className="mt-8">
           <Tape status="completed" view={{ status: 'completed' }} />
         </div>
-        <ol className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-7">
+        <ol className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           {STEPS.map((text, i) => (
             <li key={MILESTONES[i]} className="border-t border-border pt-3">
-              <h3 className="text-body font-bold lg:sr-only">{MILESTONES[i]}</h3>
-              <p className="mt-1 text-caption text-fg-2 text-pretty lg:mt-0">{text}</p>
+              <h3 className="text-body font-bold xl:sr-only">{MILESTONES[i]}</h3>
+              <p className="mt-1 text-caption text-fg-2 text-pretty xl:mt-0">{text}</p>
             </li>
           ))}
         </ol>

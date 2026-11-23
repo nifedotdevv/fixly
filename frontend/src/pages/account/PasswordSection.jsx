@@ -81,7 +81,7 @@ export default function PasswordSection() {
             )
           })}
         </ul>
-        <Button type="submit" loading={loading} loadingLabel="Changing password" className="self-start">Change password</Button>
+        <Button type="submit" loading={loading} loadingLabel="Changing password…" className="self-start">Change password</Button>
       </form>
     </Section>
   )

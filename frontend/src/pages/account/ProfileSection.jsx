@@ -58,7 +58,7 @@ export default function ProfileSection({ me }) {
         <Field label="Last name" error={errs.lastName}>
           <Input autoComplete="family-name" value={form.lastName} onChange={set('lastName')} />
         </Field>
-        <Button type="submit" loading={loading} loadingLabel="Saving" className="self-start">Save name</Button>
+        <Button type="submit" loading={loading} loadingLabel="Saving…" className="self-start">Save name</Button>
       </form>
     </Section>
   )

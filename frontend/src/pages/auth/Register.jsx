@@ -143,7 +143,7 @@ export default function Register() {
             <Input type="password" autoComplete="off" value={form.previousPassword} onChange={set('previousPassword')} />
           </Field>
         )}
-        <Button type="submit" loading={loading} loadingLabel="Creating account" className="self-start">Create account</Button>
+        <Button type="submit" loading={loading} loadingLabel="Creating account…" className="self-start">Create account</Button>
       </form>
       <p className="text-fg-2">
         Already have an account? <Link to={loginTo} className={LINK}>Sign in</Link>

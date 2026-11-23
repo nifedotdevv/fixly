@@ -63,14 +63,15 @@ export default function UsersList() {
         <EmptyState message="No users to show." />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-md border border-border">
+          <div role="region" aria-label="Users" tabIndex={0} className="overflow-x-auto rounded-md border border-border">
             <table className="w-full min-w-[44rem] border-collapse">
+              <caption className="sr-only">Users</caption>
               <thead>
                 <tr className="border-b border-border">
                   <th scope="col" className={TH}>Name</th>
                   <th scope="col" className={TH}>Email</th>
                   <th scope="col" className={TH}>Role</th>
-                  <th scope="col" className={TH}>Verified</th>
+                  <th scope="col" className={TH}>Email verified</th>
                   <th scope="col" className={TH}>Status</th>
                   <th scope="col" className={TH}>Created</th>
                 </tr>

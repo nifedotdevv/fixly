@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Avatar, Button, ErrorState, Field, Input, Skeleton, Textarea, DateTimeInput, useToast } from '../../components/ui/index.js'
+import { Avatar, Button, ErrorState, Field, Input, LinkButton, Skeleton, Textarea, DateTimeInput, useToast } from '../../components/ui/index.js'
 import { api } from '../../lib/api.js'
 import { queryKeys } from '../../lib/queryClient.js'
 import { toLocalInput, toOffsetISO, zoneLabel } from '../../lib/time.js'
 import { useAuth } from '../../auth/useAuth.js'
 import { VerifyNotice } from '../../layouts/VerifyBanner.jsx'
 import { useDocumentTitle } from '../../layouts/useDocumentTitle.js'
+import { useFocusFirstInvalid } from '../account/helpers.js'
 import { Profession } from '../artisans/shared.jsx'
 import { fromPrice, fullName } from '../artisans/helpers.js'
 
@@ -93,6 +94,9 @@ export default function NewRequest() {
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [unverified, setUnverified] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  const formRef = useRef(null)
+  useFocusFirstInvalid(formRef, attempt)
 
   const query = useQuery({
     queryKey: queryKeys.artisan(profileId),
@@ -122,6 +126,7 @@ export default function NewRequest() {
         if (key) next[key === 'inspectionWindow' ? 'start' : key] = String(message)
       }
       setErrors(next)
+      setAttempt((n) => n + 1)
     },
   })
 
@@ -138,7 +143,10 @@ export default function NewRequest() {
     setFormError('')
     const found = validate(values)
     setErrors(found)
-    if (Object.keys(found).length > 0) return
+    if (Object.keys(found).length > 0) {
+      setAttempt((n) => n + 1)
+      return
+    }
     send.mutate({
       artisan: profile.user_id._id ?? profile.user_id.id,
       description: values.description.trim(),
@@ -151,8 +159,10 @@ export default function NewRequest() {
   if (query.isPending) return <Loading />
   if (query.error?.status === 404) {
     return (
-      <div className="flex max-w-[40rem] flex-col gap-2 py-8">
+      <div className="flex max-w-[40rem] flex-col items-start gap-4 py-8">
         <h1>This artisan isn't listed right now</h1>
+        <p className="max-w-[60ch] text-fg-2">They may have paused their profile or left Fixly.</p>
+        <LinkButton to="/artisans">Back to the directory</LinkButton>
       </div>
     )
   }
@@ -167,11 +177,14 @@ export default function NewRequest() {
       <Summary profile={profile} />
       <h1>Request an inspection</h1>
       {away ? (
-        <p role="status" className="text-fg-2">Not taking requests right now</p>
+        <div className="flex flex-col items-start gap-4">
+          <p role="status" className="text-fg-2">Not taking requests right now</p>
+          <LinkButton to="/artisans" variant="secondary">Back to the directory</LinkButton>
+        </div>
       ) : (
         <>
           {(unverified || me?.emailVerified === false) && <VerifyNotice email={me?.email} />}
-          <form onSubmit={submit} noValidate className="flex flex-col gap-6">
+          <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-6">
             {formError && <p role="alert" className="text-error">{formError}</p>}
             <Field label="What needs fixing?" error={errors.description}
               helper={<span className="tabular">{values.description.length} / {DESCRIPTION_MAX}</span>}>

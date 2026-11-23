@@ -42,8 +42,11 @@ describe('homeowner action forms', () => {
     const Form = forms.review
     const action = act('review', 'Leave a review')
     render(<Form action={action} mutation={mutation} />)
-    expect(screen.getByRole('button', { name: 'Submit review' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('radio', { name: '4 out of 5' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Submit review' }))
+    expect(mutation.mutateAsync).not.toHaveBeenCalled()
+    expect(screen.getByText('Choose a rating.')).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-invalid', 'true')
+    await userEvent.click(screen.getByRole('radio', { name: '4 stars' }))
     await userEvent.type(screen.getByLabelText(/Comment/), 'Tidy work')
     await userEvent.click(screen.getByRole('button', { name: 'Submit review' }))
     expect(mutation.mutateAsync).toHaveBeenCalledWith({ action, body: { rating: 4, comment: 'Tidy work' } })
@@ -52,15 +55,15 @@ describe('homeowner action forms', () => {
   it('arrow keys change the rating', async () => {
     const Form = forms.review
     render(<Form action={act('review', 'Leave a review')} mutation={mk()} />)
-    await userEvent.click(screen.getByRole('radio', { name: '2 out of 5' }))
+    await userEvent.click(screen.getByRole('radio', { name: '2 stars' }))
     // Radix moves focus on a timeout after keydown; userEvent's instant keyup would cancel the check.
     fireEvent.keyDown(document.activeElement, { key: 'ArrowRight' })
-    await waitFor(() => expect(screen.getByRole('radio', { name: '3 out of 5' })).toBeChecked())
+    await waitFor(() => expect(screen.getByRole('radio', { name: '3 stars' })).toBeChecked())
     expect(screen.getByText('3 out of 5')).toBeInTheDocument()
     fireEvent.keyDown(document.activeElement, { key: 'ArrowLeft' })
-    await waitFor(() => expect(screen.getByRole('radio', { name: '2 out of 5' })).toBeChecked())
+    await waitFor(() => expect(screen.getByRole('radio', { name: '2 stars' })).toBeChecked())
     fireEvent.keyDown(document.activeElement, { key: 'ArrowLeft' })
-    await waitFor(() => expect(screen.getByRole('radio', { name: '1 out of 5' })).toBeChecked())
+    await waitFor(() => expect(screen.getByRole('radio', { name: '1 star' })).toBeChecked())
   })
 
   it('problem form needs a confirm before it sends', async () => {
@@ -69,7 +72,11 @@ describe('homeowner action forms', () => {
     const action = act('report-problem', 'Report a problem')
     render(<Form action={action} mutation={mutation} />)
     const trigger = screen.getByRole('button', { name: 'Report a problem' })
-    expect(trigger).toBeDisabled()
+    expect(trigger).toBeEnabled()
+    await userEvent.click(trigger)
+    expect(screen.getByText('Describe the problem.')).toBeInTheDocument()
+    expect(screen.getByLabelText("What's wrong?")).toHaveFocus()
+    expect(mutation.mutateAsync).not.toHaveBeenCalled()
     await userEvent.type(screen.getByLabelText("What's wrong?"), 'Tap still leaks')
     await userEvent.click(trigger)
     expect(mutation.mutateAsync).not.toHaveBeenCalled()

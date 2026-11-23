@@ -50,7 +50,7 @@ function Body({ email, className }) {
         </p>
       </div>
       <Button variant="secondary" loading={pending} disabled={cooling} onClick={resend} className="shrink-0 self-start sm:self-center">
-        {cooling ? 'Sent' : 'Resend link'}
+        {cooling ? 'Sent. You can resend in a minute.' : 'Resend link'}
       </Button>
     </div>
   )

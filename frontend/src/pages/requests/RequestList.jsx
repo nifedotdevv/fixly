@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Button, EmptyState, ErrorState, LinkButton, Pagination, Select, Skeleton } from '../../components/ui/index.js'
@@ -48,12 +48,13 @@ function Skeletons() {
 
 function Group({ title, count, rows, role, collapsible }) {
   const [showAll, setShowAll] = useState(false)
+  const headingId = useId()
   if (!rows.length) return null
   const hidden = collapsible && !showAll && rows.length > FINISHED_COLLAPSED
   const shown = hidden ? rows.slice(0, FINISHED_COLLAPSED) : rows
   return (
-    <section aria-labelledby={`group-${title}`} className="flex flex-col gap-2">
-      <h2 id={`group-${title}`}>
+    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <h2 id={headingId}>
         {title}
         {count && <span className="tabular text-fg-2"> ({rows.length})</span>}
       </h2>
@@ -95,6 +96,7 @@ export default function RequestList() {
   const totalPages = query.data?.meta?.totalPages ?? 1
 
   let body
+  let summary = ''
   if (query.isPending) body = <Skeletons />
   else if (query.isError) {
     body = <ErrorState title="Couldn't load requests" message={query.error.message} onRetry={() => query.refetch()} retrying={query.isFetching} />
@@ -107,6 +109,7 @@ export default function RequestList() {
       body = <EmptyState message="You haven't requested any work yet." action={<LinkButton to="/artisans">Find an artisan</LinkButton>} />
     }
   } else if (status) {
+    summary = `${total} ${total === 1 ? 'request' : 'requests'}`
     body = (
       <>
         <ul className="border-t border-border">
@@ -121,6 +124,8 @@ export default function RequestList() {
     const now = new Date()
     const grouped = { 'needs-you': [], waiting: [], finished: [] }
     for (const view of rows) grouped[turnGroup(view, role, now)].push(view)
+    const needs = grouped['needs-you'].length
+    summary = needs ? `${needs} ${needs === 1 ? 'request needs' : 'requests need'} you` : 'Nothing needs you right now'
     body = (
       <div className="flex flex-col gap-8">
         {GROUPS.map(({ key, title, count }) => (
@@ -151,7 +156,10 @@ export default function RequestList() {
           </Select>
         </div>
       </div>
-      <div aria-live="polite" className="min-w-0">{body}</div>
+      <div className="min-w-0">
+        <p aria-live="polite" className="tabular mb-2 text-caption text-fg-2">{summary}</p>
+        {body}
+      </div>
     </div>
   )
 }

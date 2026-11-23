@@ -1,6 +1,6 @@
 import { formatMoney } from '../../../lib/money.js'
 import { deadlineFor } from '../../../lib/requestStatus.js'
-import { formatTime } from '../../../lib/time.js'
+import { formatDateTime } from '../../../lib/time.js'
 import { useCountdown } from '../../../lib/useCountdown.js'
 import { moneyIn } from './format.js'
 
@@ -29,7 +29,7 @@ export default function PaymentWaitingPanel({ view }) {
       )}
       {deadline && (
         <p className="tabular text-warning">
-          Ends {formatTime(deadline)}, {label === 'Expired' ? 'expired' : `${label} left`}
+          Ends {formatDateTime(deadline)}, {label === 'Expired' ? 'expired' : `${label} left`}
         </p>
       )}
     </section>
