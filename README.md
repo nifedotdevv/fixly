@@ -51,6 +51,8 @@ JWT_EXPIRES_IN=1d
 CLIENT_ORIGIN=http://localhost:5173
 ```
 
+`TRUST_PROXY` (optional, off by default) sets Express `trust proxy`: a hop count such as `1`, or a trusted address list. Set it only behind a reverse proxy so rate limiting sees client IPs.
+
 `CLIENT_ORIGIN` is the comma-separated list of browser origins allowed to call the API (e.g. your Vite dev server). Leave it empty to block cross-origin browser requests.
 
 Start the development server:

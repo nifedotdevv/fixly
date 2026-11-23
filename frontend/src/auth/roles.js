@@ -17,4 +17,8 @@ export const ROLE_AUDIENCE = {
 }
 
 // Only same-origin paths are allowed as a post-login destination.
-export const safeNext = (next) => (next && next.startsWith('/') && !next.startsWith('//') ? next : null)
+// eslint-disable-next-line no-control-regex
+const UNSAFE_NEXT = /[\\\x00-\x1f\x7f]/
+
+export const safeNext = (next) =>
+  next && next.startsWith('/') && !next.startsWith('//') && !UNSAFE_NEXT.test(next) ? next : null

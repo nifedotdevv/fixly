@@ -30,6 +30,11 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+if (process.env.TRUST_PROXY) {
+  const trustProxy = Number(process.env.TRUST_PROXY);
+  app.set("trust proxy", Number.isNaN(trustProxy) ? process.env.TRUST_PROXY : trustProxy);
+}
+
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: "10kb" }));
