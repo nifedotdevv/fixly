@@ -1,0 +1,31 @@
+@keyframes ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ui-dialog-in {
+  from { opacity: 0; scale: 0.98; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes ui-dialog-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.98; }
+}
+@keyframes ui-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ui-toast-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ui-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.ui-overlay[data-state="open"] { animation: ui-fade-in var(--duration-normal) var(--ease-out); }
+.ui-overlay[data-state="closed"] { animation: ui-fade-out var(--duration-fast) var(--ease-exit); }
+.ui-dialog[data-state="open"] { animation: ui-dialog-in var(--duration-normal) var(--ease-out); }
+.ui-dialog[data-state="closed"] { animation: ui-dialog-out var(--duration-fast) var(--ease-exit); }
+.ui-toast[data-state="open"] { animation: ui-toast-in var(--duration-normal) var(--ease-out); }
+.ui-toast[data-state="closed"] { animation: ui-toast-out var(--duration-fast) var(--ease-exit); }
+.ui-pulse { animation: ui-pulse 1.6s var(--ease-in-out) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-pulse { animation: none; }
+  .ui-dialog[data-state="open"] { animation-name: ui-fade-in; }
+  .ui-dialog[data-state="closed"] { animation-name: ui-fade-out; }
+  .ui-toast[data-state="open"] { animation-name: ui-fade-in; }
+}
+.ui-dialog { overscroll-behavior: contain; }

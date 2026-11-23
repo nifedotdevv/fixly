@@ -50,6 +50,8 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 
 - [x] Route B domain workflows: admin problem/reconciliation resolution, immutable completed-job reviews and computed rating summaries, effective request-status filtering, and SMTP-backed credential recovery/update endpoints. See [backend/DOMAIN_WORKFLOWS.md](backend/DOMAIN_WORKFLOWS.md).
 
+- [x] Route C frontend built on branch `frontend/route-c` (`frontend/`, React 19, Vite, Tailwind v4, React Query; 235 passing tests): landing, auth and credential recovery pages, account settings, artisan directory/detail/workspace, homeowner and artisan request lifecycle with the tape and payment-waiting panel, and the admin user console and support queues. Known gaps: no online payment, admin user detail cannot show the deactivation reason (API hides `deletionReason`), no search in admin users. See [frontend/README.md](frontend/README.md).
+
 ## What Is Next
 - [x] SMTP (Gmail) configured and real delivery verified 2026-11-21 (`npm run mail:check`); `EMAIL_VERIFY_URL` added to the local `.env` 2026-11-23 so verification mail can be sent. Automated tests mock transport
 - [ ] Live payment checkout and signed webhooks remain deferred; rescheduling/quote revisions need a separate versioning and reservation contract
@@ -57,9 +59,9 @@ Comprehensive code review and architectural hardening of the Fixly backend API (
 - [x] Backend last-admin guard (409 `LAST_ADMIN`), `POST /auth/logout-all`, 12h default JWT lifetime, legacy `rating` array hidden from profile responses
 - [ ] Adopt a replica set and transactions if atomic lifecycle changes become required
 - [ ] Configure valid Cloudinary credentials and verify a real upload; avatar tests currently mock provider calls
-- [ ] Frontend confirmation for destructive admin actions (deferred); backend last-admin guard is in place
+- [x] Frontend confirmation dialogs for destructive admin actions; backend last-admin guard is in place
 - [ ] Send legacy bcrypt accounts the reset mail (`npm run data:audit -- --apply send-resets`, operator step); inventory historical untracked images
-- [ ] Build the product frontend and contact/hiring workflows; frontend currently remains a Vite starter
+- [ ] Contact/hiring workflows beyond the in-app request flow (no messaging; live payment still deferred)
 
 ## Known Gotchas & Constraints
 - Profile creation clients must omit user_id and rating; either field causes a 400 response.

@@ -11,4 +11,4 @@ export const generateToken = (user) => {
   );
 };
 
-export const verifyToken = (token) => jwt.verify(token, process.env.JWT_SECRET);
+export const verifyToken = (token) => jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
