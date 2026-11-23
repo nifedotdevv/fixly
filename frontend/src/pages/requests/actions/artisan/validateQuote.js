@@ -5,7 +5,7 @@ export function validateQuote({ scope, total, start, end, expiresAt }, now = Dat
   const errors = {}
   const len = scope.trim().length
   if (len < 3 || len > 4000) errors.scope = 'Describe the work in 3 to 4000 characters'
-  if (!(total >= 4)) errors.total = `Enter a total of at least ${formatMoney({ amount: 4 })}`
+  if (!(total >= 100)) errors.total = `Enter a total of at least ${formatMoney({ amount: 100 })}`
   if (!start) errors.start = 'Choose when the repair starts'
   else if (time(start) <= now) errors.start = 'The repair must start in the future'
   if (!end) errors.end = 'Choose when the repair ends'

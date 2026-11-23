@@ -110,7 +110,7 @@ function ResolvePayment({ payment }) {
         onOpenChange={(o) => { if (!o && !finished.current) setStep('form') }}
         tone="primary"
         title="Record this resolution?"
-        description={`Marks ${formatMoney(payment)} as ${chosen?.label.toLowerCase() ?? ''}. This only records what you did elsewhere. It does not move money.`}
+        description={`Marks ${formatMoney(payment)} as ${chosen ? chosen.label[0].toLowerCase() + chosen.label.slice(1) : ''}. This only records what you did elsewhere. It does not move money.`}
         confirmLabel="Record resolution"
         loadingLabel="Saving…"
         onConfirm={confirm}

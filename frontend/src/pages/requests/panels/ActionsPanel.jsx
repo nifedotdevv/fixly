@@ -8,6 +8,7 @@ const CONFIRM_TEXT = {
   'decline-quote': 'The repair will not go ahead.',
   'confirm-completion': 'This confirms the repair is finished.',
   'complete-repair': 'The homeowner is asked to confirm the repair is finished.',
+  'complete-inspection': 'You can then send the homeowner your quote for the repair.',
 }
 const DESTRUCTIVE = ['cancel', 'decline-quote']
 
@@ -17,7 +18,8 @@ function ActionButton({ action, variant, mutation }) {
   const run = () => mutateAsync({ action })
   const message = errors[0] ?? error?.message
 
-  if (action.confirm) {
+  const gated = Boolean(action.availableFrom)
+  if (action.confirm && !gated) {
     return (
       <ConfirmDialog
         trigger={<Button variant={variant}>{action.label}</Button>}
@@ -31,7 +33,6 @@ function ActionButton({ action, variant, mutation }) {
       />
     )
   }
-  const gated = Boolean(action.availableFrom)
   return (
     <div className="flex flex-col items-start gap-1">
       <Button variant={variant} disabled={gated} loading={isPending} loadingLabel="Working…" onClick={run}>

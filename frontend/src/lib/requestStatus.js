@@ -178,6 +178,7 @@ export function actionsFor(view, role, now = new Date()) {
       const end = view.inspection?.window?.end
       return [
         action('complete-inspection', 'Mark inspection done', `${base}/inspection/complete`, [], {
+          confirm: true,
           ...(end && at < time(end) ? { availableFrom: end } : {}),
         }),
       ]

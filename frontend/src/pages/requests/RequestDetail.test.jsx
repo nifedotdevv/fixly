@@ -218,6 +218,8 @@ test('an open time-gated action is enabled and posts', async () => {
   })
   mount()
   await userEvent.click(await screen.findByRole('button', { name: 'Mark inspection done' }))
+  const dialog = await screen.findByRole('alertdialog')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Mark inspection done' }))
   expect(await screen.findByText('Inspection marked done')).toBeInTheDocument()
   await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Inspected, quote coming'))
 })
