@@ -23,6 +23,8 @@ export function RequireAuth() {
     const reason = endReasonFor?.(location.key)
     // The session just ended here: sign out goes home, expiry says so on the login page.
     if (reason === 'signed-out') return <Navigate to="/" replace />
+    // The flow that ended the session navigates itself (to /login with a notice).
+    if (reason === 'ended') return null
     const next = encodeURIComponent(path)
     return <Navigate to={`/login?next=${next}${reason === 'expired' ? '&expired=1' : ''}`} replace />
   }

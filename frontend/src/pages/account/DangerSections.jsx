@@ -9,7 +9,7 @@ import { LINK } from './helpers.js'
 
 function endSession(navigate, notice) {
   queryClient.clear()
-  clearSession()
+  clearSession('ended')
   navigate('/login', { replace: true, state: { notice } })
 }
 
@@ -56,7 +56,7 @@ export function DeleteSection() {
     setError(null)
     setInvalid(false)
     try {
-      await api('/users/me', { method: 'DELETE', body: { password } })
+      await api('/users/me', { method: 'DELETE', authFailure: 'throw', body: { password } })
     } catch (err) {
       if (!(err instanceof ApiError)) throw err
       if (err.status === 401) {

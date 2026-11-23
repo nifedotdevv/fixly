@@ -180,17 +180,18 @@ export default function NewRequest() {
             <Field label="Service address" helper="Shared only with this artisan" error={errors.serviceAddress}>
               <Input value={values.serviceAddress} onChange={(e) => set('serviceAddress')(e.target.value)} />
             </Field>
-            <fieldset className="flex flex-col gap-4 [&_input+p]:hidden">
+            <fieldset className="flex flex-col gap-4">
               <legend className="mb-1 font-medium">Inspection window</legend>
               <p className="-mt-3 text-caption text-muted">Times are in {zoneLabel()}</p>
               <Field label="Starts" error={errors.start}>
-                <DateTimeInput value={values.start ? toLocalInput(values.start) : ''} onChange={setStart} />
+                <DateTimeInput hideZone value={values.start ? toLocalInput(values.start) : ''} onChange={setStart} />
               </Field>
               <Field label="Ends" error={errors.end}>
-                <DateTimeInput value={values.end ? toLocalInput(values.end) : ''} onChange={set('end')} />
+                <DateTimeInput hideZone value={values.end ? toLocalInput(values.end) : ''} onChange={set('end')} />
               </Field>
               <Field label="Reply needed by" error={errors.responseDeadline} helper="Between 15 minutes and 7 days from now, and no later than the start.">
                 <DateTimeInput
+                  hideZone
                   value={values.responseDeadline ? toLocalInput(values.responseDeadline) : ''}
                   onChange={(iso) => { setDeadlineTouched(true); set('responseDeadline')(iso) }}
                 />

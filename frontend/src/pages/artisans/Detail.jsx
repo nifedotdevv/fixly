@@ -11,18 +11,18 @@ import { fromPrice, fullName, titleCase } from './helpers.js'
 function RequestAction({ profile, id }) {
   const { me, status } = useAuth()
   if (status === 'loading') return null
-  if (!me) {
+  if (me && me.role !== 'house_owner') return null
+  const away = profile.isAvailable === false
+  if (!me && !away) {
     return <LinkButton to={`/register?role=house_owner&next=/artisans/${id}/request`}>Request an inspection</LinkButton>
   }
-  if (me.role !== 'house_owner') return null
-  const away = profile.isAvailable === false
   return (
     <div className="flex flex-col items-start gap-2">
       {away
         ? <Button disabled>Request an inspection</Button>
         : <LinkButton to={`/artisans/${id}/request`}>Request an inspection</LinkButton>}
       {away && <p className="text-caption text-fg-2">Not taking requests right now</p>}
-      {me.emailVerified === false && <p className="text-caption text-fg-2">Verify your email to send requests.</p>}
+      {me?.emailVerified === false && <p className="text-caption text-fg-2">Verify your email to send requests.</p>}
     </div>
   )
 }
@@ -97,7 +97,7 @@ function Profile({ p, id }) {
 
 export default function Detail() {
   const { profileId } = useParams()
-  const query = useQuery({ queryKey: queryKeys.artisan(profileId), queryFn: ({ signal }) => api(`/artisans/${profileId}`, { signal }) })
+  const query = useQuery({ queryKey: queryKeys.artisan(profileId), queryFn: ({ signal }) => api(`/artisan/profile/${profileId}`, { signal }) })
   const p = query.data?.data
   useDocumentTitle(p ? fullName(p) : 'Artisan')
 

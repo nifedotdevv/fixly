@@ -16,7 +16,7 @@ import { useRequestAction } from './useRequestAction.js'
 
 function DetailSkeleton() {
   return (
-    <div role="status" aria-label="Loading request" className="flex flex-col gap-6">
+    <div role="status" aria-label="Loading request" className="flex flex-col gap-6 py-6">
       <Skeleton className="h-8 w-2/3 max-w-md" />
       <Skeleton className="h-16 w-full" />
       <div className="grid gap-6 lg:grid-cols-12">
@@ -37,7 +37,7 @@ function Loaded({ view, role, refetch, renderActionForm }) {
   useCountdown(deadline, { onExpire: refetch })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 py-6">
       <div className="flex flex-col items-start gap-2">
         <h1 className="break-words">{title}</h1>
         <StatusBadge tone={tone}>{label}</StatusBadge>

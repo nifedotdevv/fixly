@@ -39,7 +39,8 @@ const end = (reason) => {
   listeners.forEach((cb) => cb(reason));
 };
 
-export const clearSession = () => end("signed-out");
+// "signed-out" lands on /; "ended" is for flows that navigate somewhere themselves (e.g. /login with a notice).
+export const clearSession = (reason = "signed-out") => end(reason);
 export const expireSession = () => end("expired");
 
 export const onSessionChange = (cb) => {

@@ -34,7 +34,7 @@ export default function EmailSection({ me }) {
     setLoading(true)
     const email = form.email.trim()
     try {
-      await api('/users/me/email-change', { method: 'POST', body: { currentPassword: form.currentPassword, email } })
+      await api('/users/me/email-change', { method: 'POST', authFailure: 'throw', body: { currentPassword: form.currentPassword, email } })
       setSentTo(email)
       setForm({ currentPassword: '', email: '' })
     } catch (err) {

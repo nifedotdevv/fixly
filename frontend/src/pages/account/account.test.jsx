@@ -4,12 +4,14 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { ToastProvider } from '../../components/ui/index.js'
 import { queryClient, queryKeys } from '../../lib/queryClient.js'
+import { getToken, setToken } from '../../lib/session.js'
 import Account from './Account.jsx'
 
 const me = { id: 'u1', firstName: 'Ada', lastName: 'Obi', email: 'ada@example.com', role: 'house_owner', emailVerified: true, avatar: null }
 vi.mock('../../auth/useAuth.js', () => ({ useAuth: () => ({ me }) }))
 const clearSession = vi.fn()
-vi.mock('../../lib/session.js', async (orig) => ({ ...(await orig()), clearSession: (...a) => clearSession(...a) }))
+const expireSession = vi.fn()
+vi.mock('../../lib/session.js', async (orig) => ({ ...(await orig()), clearSession: (...a) => clearSession(...a), expireSession: () => expireSession() }))
 
 function reply(status, json = {}) {
   globalThis.fetch = vi.fn().mockResolvedValue({ ok: status < 400, status, json: async () => json })
@@ -33,7 +35,7 @@ function setup() {
     </QueryClientProvider>,
   )
 }
-beforeEach(() => clearSession.mockClear())
+beforeEach(() => { clearSession.mockClear(); expireSession.mockClear() })
 
 test('a name save updates the me cache', async () => {
   const user = userEvent.setup()
@@ -71,7 +73,7 @@ test('a password change clears the session and goes to login', async () => {
   await user.type(pw.getByLabelText('New password'), 'NewPassw0rd!')
   await user.click(pw.getByRole('button', { name: 'Change password' }))
   expect(await screen.findByText('at /login: Password changed. Sign in again.')).toBeInTheDocument()
-  expect(clearSession).toHaveBeenCalled()
+  expect(clearSession).toHaveBeenCalledWith('ended')
   expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
     currentPassword: 'OldPassw0rd!', password: 'NewPassw0rd!', confirmPassword: 'NewPassw0rd!',
   })
@@ -100,7 +102,7 @@ test('sign out on all devices confirms, clears the session and goes to login', a
   await user.click(within(dialog).getByRole('button', { name: 'Sign out on all devices' }))
   expect(await screen.findByText('at /login: Signed out on all devices.')).toBeInTheDocument()
   expect(fetch.mock.calls[0][0]).toBe('/api/v1/auth/logout-all')
-  expect(clearSession).toHaveBeenCalled()
+  expect(clearSession).toHaveBeenCalledWith('ended')
 })
 
 test('another 409 on delete shows the server message', async () => {
@@ -113,4 +115,61 @@ test('another 409 on delete shows the server message', async () => {
   await user.click(within(dialog).getByRole('button', { name: 'Delete my account' }))
   expect(await within(dialog).findByText(/Another account lifecycle operation/)).toBeInTheDocument()
   expect(within(dialog).queryByText(/open jobs/)).not.toBeInTheDocument()
+})
+
+test('a wrong current password shows the field error and keeps the user signed in', async () => {
+  const user = userEvent.setup()
+  setToken('t')
+  reply(401, { message: 'Current password is incorrect' })
+  setup()
+  const pw = section('Password')
+  await user.type(pw.getByLabelText('Current password'), 'WrongPassw0rd!')
+  await user.type(pw.getByLabelText('New password'), 'NewPassw0rd!')
+  await user.click(pw.getByRole('button', { name: 'Change password' }))
+  expect(await pw.findByText('Current password is incorrect')).toBeInTheDocument()
+  expect(expireSession).not.toHaveBeenCalled()
+  expect(clearSession).not.toHaveBeenCalled()
+  expect(getToken()).toBe('t')
+})
+
+test('a wrong password on the email form keeps the user signed in', async () => {
+  const user = userEvent.setup()
+  setToken('t')
+  reply(401, { message: 'Current password is incorrect' })
+  setup()
+  const em = section('Email')
+  await user.type(em.getByLabelText('Current password'), 'WrongPassw0rd!')
+  await user.type(em.getByLabelText('New email'), 'new@example.com')
+  await user.click(em.getByRole('button', { name: 'Change email' }))
+  expect(await em.findByText('Current password is incorrect')).toBeInTheDocument()
+  expect(expireSession).not.toHaveBeenCalled()
+})
+
+test('a wrong password on delete shows the dialog error and keeps the user signed in', async () => {
+  const user = userEvent.setup()
+  setToken('t')
+  reply(401, { message: 'Invalid email or password' })
+  setup()
+  await user.click(screen.getByRole('button', { name: 'Delete account' }))
+  const dialog = await screen.findByRole('alertdialog')
+  await user.type(within(dialog).getByLabelText('Password'), 'WrongPassw0rd!')
+  await user.click(within(dialog).getByRole('button', { name: 'Delete my account' }))
+  expect(await within(dialog).findByText('Password is incorrect')).toBeInTheDocument()
+  expect(expireSession).not.toHaveBeenCalled()
+  expect(getToken()).toBe('t')
+})
+
+test('removing a photo that already cleared server-side closes the dialog with a notice', async () => {
+  const user = userEvent.setup()
+  reply(503, { message: 'Profile picture removed from your account; image cleanup is pending.', data: { avatar: null } })
+  const withAvatar = { ...me, avatar: { url: 'https://img.test/a.png' } }
+  queryClient.setQueryData(queryKeys.me(), { data: withAvatar })
+  me.avatar = withAvatar.avatar
+  setup()
+  await user.click(screen.getByRole('button', { name: /Remove photo/ }))
+  const dialog = await screen.findByRole('alertdialog')
+  await user.click(within(dialog).getByRole('button', { name: /Remove/ }))
+  expect(await screen.findByText('Photo removed. Cleanup is still finishing.')).toBeInTheDocument()
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  me.avatar = null
 })

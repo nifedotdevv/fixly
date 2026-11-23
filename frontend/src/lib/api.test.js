@@ -78,6 +78,19 @@ describe("api", () => {
     expect(getToken()).toBeNull();
   });
 
+  it("keeps the session on a 401 when the caller passes authFailure: throw", async () => {
+    setToken("tok");
+    const cb = vi.fn();
+    const off = onSessionChange(cb);
+    fetchMock.mockReturnValue(reply(401, { message: "Current password is incorrect" }));
+    const err = await fail(api("/users/me/password", { method: "PATCH", body: {}, authFailure: "throw" }));
+    off();
+    expect(err.status).toBe(401);
+    expect(err.message).toBe("Current password is incorrect");
+    expect(cb).not.toHaveBeenCalled();
+    expect(getToken()).toBe("tok");
+  });
+
   it("does not expire the session on a 401 with auth: false", async () => {
     setToken("tok");
     fetchMock.mockReturnValue(reply(401, { message: "Invalid credentials" }));

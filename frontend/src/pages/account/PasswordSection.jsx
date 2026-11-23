@@ -38,10 +38,11 @@ export default function PasswordSection() {
     try {
       await api('/users/me/password', {
         method: 'PATCH',
+        authFailure: 'throw',
         body: { currentPassword: form.currentPassword, password: form.password, confirmPassword: form.password },
       })
       queryClient.clear()
-      clearSession()
+      clearSession('ended')
       navigate('/login', { replace: true, state: { notice: 'Password changed. Sign in again.' } })
       return
     } catch (err) {

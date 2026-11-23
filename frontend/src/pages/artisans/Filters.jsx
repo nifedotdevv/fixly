@@ -5,8 +5,14 @@ import { PROFESSIONS } from './helpers.js'
 const TEXT_DELAY = 400
 
 // Local text state, committed to the URL on submit or after a pause in typing.
-function useTextField(urlValue, commit) {
+// resetKey changes when the page clears every filter: drop the typed text, which also cancels the pending commit.
+function useTextField(urlValue, commit, resetKey) {
   const [value, setValue] = useState(urlValue)
+  const [seenReset, setSeenReset] = useState(resetKey)
+  if (seenReset !== resetKey) {
+    setSeenReset(resetKey)
+    setValue('')
+  }
   useEffect(() => {
     if (value.trim() === urlValue) return undefined
     const t = setTimeout(() => commit(value.trim()), TEXT_DELAY)
@@ -15,11 +21,11 @@ function useTextField(urlValue, commit) {
   return [value, setValue]
 }
 
-export default function Filters({ values, onChange, error }) {
+export default function Filters({ values, onChange, error, resetKey }) {
   const set = (key) => (v) => onChange({ [key]: v })
-  const [search, setSearch] = useTextField(values.search, set('search'))
-  const [skill, setSkill] = useTextField(values.skill, set('skill'))
-  const [area, setArea] = useTextField(values.area, set('area'))
+  const [search, setSearch] = useTextField(values.search, set('search'), resetKey)
+  const [skill, setSkill] = useTextField(values.skill, set('skill'), resetKey)
+  const [area, setArea] = useTextField(values.area, set('area'), resetKey)
 
   function submit(e) {
     e.preventDefault()

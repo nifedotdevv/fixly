@@ -49,6 +49,7 @@ test('filters write to the URL and reset the page', async () => {
   list([profile()])
   mount(<Directory />, '/artisans?page=2', '/artisans')
   await screen.findByText('Tunde Bello')
+  expect(fetch.mock.calls[0][0]).toMatch(/^\/api\/v1\/artisan\/profiles\?/)
   await user.selectOptions(screen.getByLabelText('Profession'), 'Plumber')
   await waitFor(() => expect(screen.getByTestId('search')).toHaveTextContent('?profession=Plumber'))
   expect(screen.getByTestId('search')).not.toHaveTextContent('page=')
@@ -89,6 +90,32 @@ test('empty and 400 states', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('skill must not exceed 60 characters')
 })
 
+test('clear filters drops typed text after the debounce has committed', async () => {
+  const user = userEvent.setup()
+  list([], 1)
+  mount(<Directory />, '/artisans', '/artisans')
+  await user.type(await screen.findByLabelText('Area'), 'nowhere')
+  await waitFor(() => expect(screen.getByTestId('search')).toHaveTextContent('area=nowhere'))
+  await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
+  await waitFor(() => expect(screen.getByTestId('search')).toHaveTextContent(/^$/))
+  expect(screen.getByLabelText('Area')).toHaveValue('')
+  await new Promise((r) => setTimeout(r, 600))
+  expect(screen.getByTestId('search')).toHaveTextContent(/^$/)
+  expect(screen.getByLabelText('Area')).toHaveValue('')
+})
+
+test('clear filters cancels a pending debounce', async () => {
+  const user = userEvent.setup()
+  list([], 1)
+  mount(<Directory />, '/artisans?skill=x', '/artisans')
+  await screen.findByText('No artisans match these filters.')
+  await user.type(screen.getByLabelText('Area'), 'nowhere')
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+  await new Promise((r) => setTimeout(r, 700))
+  expect(screen.getByTestId('search')).toHaveTextContent(/^$/)
+  expect(screen.getByLabelText('Area')).toHaveValue('')
+})
+
 const detail = (over) => reply(200, { data: profile(over) })
 const open = () => mount(<Detail />, '/artisans/p1', '/artisans/:profileId')
 
@@ -101,11 +128,20 @@ test('detail: signed out goes to register', async () => {
   expect(screen.getByText('8 years’ experience')).toBeInTheDocument()
 })
 
+test('detail: signed-out visitor sees a disabled button for an away artisan', async () => {
+  detail({ isAvailable: false })
+  open()
+  expect(await screen.findByRole('button', { name: 'Request an inspection' })).toBeDisabled()
+  expect(screen.queryByRole('link', { name: 'Request an inspection' })).toBeNull()
+  expect(screen.getByText('Not taking requests right now')).toBeInTheDocument()
+})
+
 test('detail: homeowner links to the request form', async () => {
   auth = { me: { role: 'house_owner', emailVerified: true }, status: 'signed-in' }
   detail()
   open()
   expect(await screen.findByRole('link', { name: 'Request an inspection' })).toHaveAttribute('href', '/artisans/p1/request')
+  expect(fetch.mock.calls[0][0]).toBe('/api/v1/artisan/profile/p1')
 })
 
 test('detail: unverified homeowner sees the note', async () => {

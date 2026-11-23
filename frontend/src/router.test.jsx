@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
@@ -119,4 +119,18 @@ test('signing out from the account menu goes to the home page', async () => {
   await user.click(await screen.findByRole('button', { name: 'Account menu' }))
   await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }))
   await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/))
+})
+
+test('a password change lands on login with its notice, not on the home page', async () => {
+  const user = userEvent.setup()
+  mockApi({ role: 'house_owner' })
+  setToken('t')
+  renderAt('/account')
+  await screen.findByRole('heading', { name: 'Account' })
+  const pw = within(screen.getByRole('region', { name: 'Password' }))
+  await user.type(pw.getByLabelText('Current password'), 'OldPassw0rd!')
+  await user.type(pw.getByLabelText('New password'), 'NewPassw0rd!')
+  await user.click(pw.getByRole('button', { name: 'Change password' }))
+  expect(await screen.findByText('Password changed. Sign in again.')).toBeInTheDocument()
+  expect(screen.getByTestId('where')).toHaveTextContent(/^\/login$/)
 })

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, DateTimeInput, Field, MoneyInput, Textarea } from '../../../../components/ui/index.js'
+import { zoneLabel } from '../../../../lib/time.js'
 import { SplitTape } from '../../../../components/tape/index.js'
 import FormErrors from './FormErrors.jsx'
 import { splitQuote } from './splitQuote.js'
@@ -50,16 +51,17 @@ export default function QuoteForm({ action, mutation }) {
           <SplitTape total={values.total} {...split} />
         </div>
       )}
+      <p className="text-caption text-muted">Times are in {zoneLabel()}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Repair starts" error={errors.start}>
-          <DateTimeInput onChange={set('start')} />
+          <DateTimeInput hideZone onChange={set('start')} />
         </Field>
         <Field label="Repair ends" error={errors.end}>
-          <DateTimeInput onChange={set('end')} />
+          <DateTimeInput hideZone onChange={set('end')} />
         </Field>
       </div>
       <Field label="Quote valid until" helper="No later than the repair start." error={errors.expiresAt}>
-        <DateTimeInput onChange={set('expiresAt')} />
+        <DateTimeInput hideZone onChange={set('expiresAt')} />
       </Field>
       <FormErrors mutation={mutation} />
       <div>

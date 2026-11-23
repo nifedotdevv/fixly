@@ -91,7 +91,7 @@ export default function Directory() {
     page: values.page,
     limit: PAGE_SIZE,
   }
-  const query = useQuery({ queryKey: queryKeys.artisans(params), queryFn: ({ signal }) => api('/artisans', { query: params, signal }) })
+  const query = useQuery({ queryKey: queryKeys.artisans(params), queryFn: ({ signal }) => api('/artisan/profiles', { query: params, signal }) })
 
   // Any filter change goes back to page 1; only Pagination sets a page.
   function change(updates) {
@@ -114,7 +114,7 @@ export default function Directory() {
   const count = activeCount(values)
   const rows = query.data?.data ?? []
   const totalPages = query.data?.meta?.totalPages ?? 1
-  const filters = <Filters key={clearKey} values={values} onChange={change} error={badRequest} />
+  const filters = <Filters resetKey={clearKey} values={values} onChange={change} error={badRequest} />
 
   let results
   if (query.isPending) results = <Skeletons />

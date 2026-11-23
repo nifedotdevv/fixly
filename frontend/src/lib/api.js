@@ -32,7 +32,7 @@ const parseBody = async (res) => {
   }
 };
 
-export async function api(path, { method = "GET", body, formData, auth = true, query, signal } = {}) {
+export async function api(path, { method = "GET", body, formData, auth = true, authFailure = "expire", query, signal } = {}) {
   const headers = { Accept: "application/json" };
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -59,7 +59,8 @@ export async function api(path, { method = "GET", body, formData, auth = true, q
     return { data: json.data, meta: json.meta, message: json.message };
   }
 
-  if (res.status === 401 && token) expireSession();
+  // Endpoints that check a password return 401 for a wrong one; they pass authFailure: "throw" and handle it themselves.
+  if (res.status === 401 && token && authFailure !== "throw") expireSession();
 
   let message = json.message;
   if (res.status === 429) message = "Too many attempts. Try again in a few minutes.";

@@ -75,8 +75,15 @@ export default function PhotoSection({ me }) {
       toast({ title: 'Photo removed', tone: 'success' })
     } catch (err) {
       if (!(err instanceof ApiError)) throw err
-      if (err.status === 503) setAvatar(null)
-      setRemoveError(err.status === 503 ? 'Removal is still finishing. Try again.' : err.message)
+      // 503 means the avatar is already cleared on the server and only image cleanup is pending.
+      if (err.status === 503) {
+        setAvatar(null)
+        qc.invalidateQueries({ queryKey: queryKeys.me() })
+        toast({ title: 'Photo removed. Cleanup is still finishing.' })
+        return
+      }
+      qc.invalidateQueries({ queryKey: queryKeys.me() })
+      setRemoveError(err.message)
       throw err
     }
   }
