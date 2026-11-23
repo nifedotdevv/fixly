@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, ConfirmDialog, useToast } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { queryKeys } from '../../lib/queryClient.js'
-import { Notice, Section } from './shared.jsx'
+import { Notice, Section, SectionFooter } from './shared.jsx'
 
 const TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX = 5 * 1024 * 1024
@@ -92,7 +92,7 @@ export default function PhotoSection({ me }) {
     <Section title="Photo" description="JPEG, PNG or WEBP, up to 5 MB.">
       <div className="flex items-center gap-4">
         {preview ? (
-          <img src={preview} alt="Preview of the new photo" width={64} height={64} className="size-16 shrink-0 rounded-full bg-surface-inset object-cover" />
+          <img src={preview} alt="Preview of the new photo" width={64} height={64} className="size-16 shrink-0 rounded-full bg-surface-2 object-cover" />
         ) : (
           <Avatar src={me.avatar?.url} role={me.role} name={`${me.firstName} ${me.lastName}`} size={64} />
         )}
@@ -110,22 +110,24 @@ export default function PhotoSection({ me }) {
           />
         </div>
       </div>
-      {error && <Notice><span id="avatar-error">{error}</span></Notice>}
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={upload} loading={loading} loadingLabel="Uploading…" disabled={!file}>Upload photo</Button>
-        {me.avatar?.url && (
-          <ConfirmDialog
-            trigger={<Button variant="secondary">Remove photo</Button>}
-            title="Remove your photo?"
-            description="Fixly will show the default avatar for your role instead."
-            confirmLabel="Remove photo"
-            loadingLabel="Removing…"
-            error={removeError}
-            onOpenChange={(o) => o && setRemoveError('')}
-            onConfirm={remove}
-          />
-        )}
-      </div>
+      {error && <div className="mt-4 max-w-md"><Notice><span id="avatar-error">{error}</span></Notice></div>}
+      <SectionFooter>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={upload} loading={loading} loadingLabel="Uploading…" disabled={!file}>Upload photo</Button>
+          {me.avatar?.url && (
+            <ConfirmDialog
+              trigger={<Button variant="secondary">Remove photo</Button>}
+              title="Remove your photo?"
+              description="Fixly will show the default avatar for your role instead."
+              confirmLabel="Remove photo"
+              loadingLabel="Removing…"
+              error={removeError}
+              onOpenChange={(o) => o && setRemoveError('')}
+              onConfirm={remove}
+            />
+          )}
+        </div>
+      </SectionFooter>
     </Section>
   )
 }

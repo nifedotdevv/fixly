@@ -6,11 +6,11 @@ const BASE = 'inline-flex items-center gap-1 rounded-sm px-2 py-1 text-caption f
 const TONES = {
   waiting: { Icon: Hourglass, cls: 'bg-info-soft text-info' },
   clock: { Icon: Clock, cls: 'bg-warning-soft text-warning' },
-  booked: { Icon: CalendarCheck, cls: 'bg-accent-soft text-accent' },
-  working: { Icon: Wrench, cls: 'bg-surface-inset text-ink' },
+  booked: { Icon: CalendarCheck, cls: 'bg-accent-soft text-fg' },
+  working: { Icon: Wrench, cls: 'bg-surface-2 text-fg' },
   attention: { Icon: CircleAlert, cls: 'bg-error-soft text-error' },
   done: { Icon: CircleCheck, cls: 'bg-success-soft text-success' },
-  ended: { Icon: Ban, cls: 'bg-surface-inset text-muted' },
+  ended: { Icon: Ban, cls: 'bg-surface-2 text-muted' },
 }
 
 export default function StatusBadge({ tone, children, className }) {

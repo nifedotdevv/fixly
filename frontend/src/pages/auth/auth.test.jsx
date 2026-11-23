@@ -84,9 +84,10 @@ test('password rule hints update', async () => {
   await user.type(screen.getByLabelText('Password'), 'Abcdefghi1')
   expect(rules).toHaveTextContent('A number (met)')
   expect(rules).toHaveTextContent('10 or more characters (met)')
+  expect(rules).not.toHaveTextContent('Too long')
   await user.click(screen.getByLabelText('Password'))
   await user.paste('é'.repeat(40))
-  expect(rules).toHaveTextContent('72 bytes or fewer (not met)')
+  expect(rules).toHaveTextContent('Too long, use a shorter password')
 })
 
 test('login shows a notice passed in router state', () => {

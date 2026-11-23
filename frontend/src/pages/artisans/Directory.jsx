@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { SlidersHorizontal } from 'lucide-react'
-import { Avatar, Badge, Button, Dialog, EmptyState, ErrorState, Pagination, Skeleton } from '../../components/ui/index.js'
+import { SearchX, SlidersHorizontal } from 'lucide-react'
+import { Avatar, Badge, Button, DataRow, Dialog, EmptyState, ErrorState, PageHeader, Pagination, Panel, SkeletonRows } from '../../components/ui/index.js'
 import { api } from '../../lib/api.js'
 import { queryKeys } from '../../lib/queryClient.js'
 import { useDocumentTitle } from '../../layouts/useDocumentTitle.js'
@@ -29,47 +29,38 @@ function readParams(sp) {
 
 const activeCount = (v) => ['search', 'profession', 'skill', 'area'].filter((k) => v[k]).length + (v.available ? 1 : 0)
 
+const COLUMNS = 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1.2fr)_9rem]'
+
 function Row({ p }) {
   const name = fullName(p)
   const price = fromPrice(p)
   const place = placeLine(p)
   return (
-    <li className="border-b border-border">
-      <Link
-        to={`/artisans/${profileId(p)}`}
-        className="flex items-start gap-3 py-4 hover:bg-surface-inset sm:gap-4 sm:px-2"
-      >
+    <DataRow
+      to={`/artisans/${profileId(p)}`}
+      columns={COLUMNS}
+      className="flex-wrap items-start py-4 lg:flex-nowrap lg:items-center"
+    >
+      <DataRow.Cell className="order-1 flex flex-1 items-center gap-3 lg:flex-none">
         <Avatar src={p.user_id?.avatar?.url} role="artisan" name={name} size={40} decorative />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="font-medium break-words">{name}</span>
             {p.isAvailable === false && <Badge>Away</Badge>}
-          </div>
-          <span className="text-caption text-fg-2"><Profession name={p.profession} /></span>
-          {place && <span className="text-caption text-fg-2 break-words">{place}</span>}
-          <span className="text-caption"><Rating summary={p.ratingSummary} /></span>
-        </div>
-        {price && <span className="tabular shrink-0 text-right font-medium">{price}</span>}
-      </Link>
-    </li>
-  )
-}
-
-function Skeletons() {
-  return (
-    <div aria-hidden="true" className="flex flex-col">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div key={i} className="flex items-start gap-4 border-b border-border py-4">
-          <Skeleton className="size-10 rounded-full" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-5 w-20" />
-        </div>
-      ))}
-    </div>
+          </span>
+          <span className="text-small text-fg-2"><Profession name={p.profession} /></span>
+        </span>
+      </DataRow.Cell>
+      <DataRow.Cell className="order-3 basis-full pl-[52px] text-small text-fg-2 break-words lg:order-none lg:basis-auto lg:pl-0">
+        {place || <span className="text-muted">No area listed</span>}
+      </DataRow.Cell>
+      <DataRow.Cell className="order-4 basis-full pl-[52px] text-small lg:order-none lg:basis-auto lg:pl-0">
+        <Rating summary={p.ratingSummary} />
+      </DataRow.Cell>
+      <DataRow.Cell numeric align="end" className="order-2 shrink-0 font-medium">
+        {price}
+      </DataRow.Cell>
+    </DataRow>
   )
 }
 
@@ -114,56 +105,58 @@ export default function Directory() {
   const count = activeCount(values)
   const rows = query.data?.data ?? []
   const totalPages = query.data?.meta?.totalPages ?? 1
-  const filters = <Filters resetKey={clearKey} values={values} onChange={change} error={badRequest} />
+  const filters = <Filters resetKey={clearKey} values={values} onChange={change} error={badRequest} onClear={count ? clear : undefined} />
 
   const total = query.data?.meta?.total ?? rows.length
   const resultsLine = query.isSuccess && !badRequest ? `${total} ${total === 1 ? 'artisan' : 'artisans'}` : ''
 
   let results
-  if (query.isPending) results = <Skeletons />
+  if (query.isPending) results = <Panel flush><SkeletonRows count={4} /></Panel>
   else if (badRequest) results = null
-  else if (query.isError) results = <ErrorState title="Couldn't load artisans" message={query.error.message} onRetry={() => query.refetch()} retrying={query.isFetching} />
+  else if (query.isError) results = <Panel><ErrorState title="Couldn't load artisans" message={query.error.message} onRetry={() => query.refetch()} retrying={query.isFetching} /></Panel>
   else if (!rows.length) {
-    results = <EmptyState message="No artisans match these filters." action={<Button variant="secondary" onClick={clear}>Clear filters</Button>} />
+    results = <Panel flush><EmptyState icon={SearchX} message="No artisans match these filters." action={<Button variant="secondary" onClick={clear}>Clear filters</Button>} /></Panel>
   } else {
     results = (
       <>
-        <ul className="border-t border-border">{rows.map((p) => <Row key={profileId(p)} p={p} />)}</ul>
-        <div className="mt-6">
-          <Pagination page={values.page} totalPages={totalPages} onChange={(page) => change({ page: String(page) })} />
-        </div>
+        <Panel flush><ul>{rows.map((p) => <Row key={profileId(p)} p={p} />)}</ul></Panel>
+        <Pagination page={values.page} totalPages={totalPages} onChange={(page) => change({ page: String(page) })} />
       </>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6 py-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1>Find an artisan</h1>
-        <div className="lg:hidden">
-          <Dialog
-            open={sheetOpen}
-            onOpenChange={setSheetOpen}
-            title="Filters"
-            trigger={
-              <Button variant="secondary">
-                <SlidersHorizontal size={16} strokeWidth={1.75} aria-hidden="true" />
-                Filters ({count})
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Find an artisan"
+        summary={resultsLine}
+        className="mb-0! lg:mb-0!"
+        actions={
+          <div className="lg:hidden">
+            <Dialog
+              open={sheetOpen}
+              onOpenChange={setSheetOpen}
+              title="Filters"
+              trigger={
+                <Button variant="secondary">
+                  <SlidersHorizontal size={16} strokeWidth={1.75} aria-hidden="true" />
+                  Filters ({count})
+                </Button>
+              }
+            >
+              {filters}
+              <Button className="mt-6 w-full" onClick={() => setSheetOpen(false)}>
+                {query.isSuccess && !badRequest ? `Show ${resultsLine}` : 'Show results'}
               </Button>
-            }
-          >
-            {filters}
-          </Dialog>
-        </div>
-      </div>
+            </Dialog>
+          </div>
+        }
+      />
       <div className="lg:grid lg:grid-cols-[280px_1fr] lg:items-start lg:gap-8">
-        <aside aria-label="Filters" className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto p-1 lg:block">
+        <Panel title="Filters" className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
           {filters}
-        </aside>
-        <div className="min-w-0">
-          <p aria-live="polite" className="tabular mb-2 text-caption text-fg-2">{resultsLine}</p>
-          {results}
-        </div>
+        </Panel>
+        <div className="flex min-w-0 flex-col gap-6">{results}</div>
       </div>
     </div>
   )

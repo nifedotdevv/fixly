@@ -4,6 +4,13 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Keep focused fields clear of the fixed bottom tab bar. */
+  @media (max-width: 1023.98px) {
+    html {
+      scroll-padding-bottom: 88px;
+    }
+  }
+
   body {
     background-color: var(--color-bg);
     color: var(--color-fg);
@@ -12,30 +19,31 @@
     line-height: var(--text-body--line-height);
   }
 
+  /* Geist runs heavier than the reference's face, so headings sit at 450, between regular and medium. */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-stretch: 88%;
-    font-weight: 720;
-    letter-spacing: -0.01em;
+    font-weight: 450;
+    color: var(--color-fg);
     text-wrap: balance;
   }
 
-  h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); }
-  h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); }
-  h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); }
+  h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); letter-spacing: var(--text-h1--letter-spacing); }
+  h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); letter-spacing: var(--text-h2--letter-spacing); }
+  h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); letter-spacing: var(--text-h3--letter-spacing); }
 
   p {
     text-wrap: pretty;
   }
 
   ::selection {
-    background-color: var(--color-accent-soft);
+    background-color: var(--color-lime-soft);
     color: var(--color-fg);
   }
 
+  /* Navy ring with a gap. */
   :focus-visible {
-    outline: 2px solid transparent;
-    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -55,9 +63,31 @@
 }
 
 @layer utilities {
+  /* Text link, as on the reference: navy medium text with a 1px navy underline that thickens on hover. */
+  .link {
+    color: var(--color-fg);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    border-radius: 4px;
+    transition: text-decoration-thickness var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+  }
+  .link:hover { text-decoration-thickness: 2px; }
+
+  /* Controls on the navy band or the hero gradient need a light ring instead of the ink one. */
+  .focus-on-band:focus-visible { outline-color: var(--color-on-band); }
+
   .tabular {
-    font-family: var(--font-display);
-    font-weight: 560;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Split-section headings use the text serif, as the reference does. */
+  .heading-serif {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-optical-sizing: auto;
+    letter-spacing: -0.03em;
   }
 }

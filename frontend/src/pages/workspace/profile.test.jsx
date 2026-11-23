@@ -108,3 +108,12 @@ test('an unverified artisan sees the hidden-profile notice', async () => {
   setup()
   expect(await screen.findByText('Your profile is hidden from the directory until you verify your email.')).toBeInTheDocument()
 })
+
+test('the form groups fields into labelled panels', async () => {
+  mockFetch({ 'GET /artisan/profile/me': res(200, { data: existing }) })
+  setup()
+  await screen.findByRole('heading', { level: 1, name: 'Your artisan profile' })
+  for (const name of ['What you do', 'Where you work', 'Contact (private)', 'Availability']) {
+    expect(screen.getByRole('region', { name })).toBeInTheDocument()
+  }
+})

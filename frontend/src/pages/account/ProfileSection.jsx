@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button, Field, Input, useToast } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
 import { queryKeys } from '../../lib/queryClient.js'
-import { Notice, Section } from './shared.jsx'
+import { Fields, Notice, Section, SectionFooter } from './shared.jsx'
 import { fieldErrors, useFocusFirstInvalid } from './helpers.js'
 
 export default function ProfileSection({ me }) {
@@ -51,14 +51,18 @@ export default function ProfileSection({ me }) {
   return (
     <Section title="Profile" description="The name artisans and homeowners see on your requests.">
       <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        {failure && <Notice>{failure}</Notice>}
-        <Field label="First name" error={errs.firstName}>
-          <Input autoComplete="given-name" value={form.firstName} onChange={set('firstName')} />
-        </Field>
-        <Field label="Last name" error={errs.lastName}>
-          <Input autoComplete="family-name" value={form.lastName} onChange={set('lastName')} />
-        </Field>
-        <Button type="submit" loading={loading} loadingLabel="Saving…" className="self-start">Save name</Button>
+        <Fields>
+          {failure && <Notice>{failure}</Notice>}
+          <Field label="First name" error={errs.firstName}>
+            <Input autoComplete="given-name" value={form.firstName} onChange={set('firstName')} />
+          </Field>
+          <Field label="Last name" error={errs.lastName}>
+            <Input autoComplete="family-name" value={form.lastName} onChange={set('lastName')} />
+          </Field>
+        </Fields>
+        <SectionFooter>
+          <Button type="submit" loading={loading} loadingLabel="Saving…">Save name</Button>
+        </SectionFooter>
       </form>
     </Section>
   )

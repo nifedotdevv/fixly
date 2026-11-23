@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Field, Input, LinkButton, Select, Skeleton, useToast } from '../../../components/ui/index.js'
+import { ArrowLeft } from 'lucide-react'
+import {
+  Avatar, Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, Input, LinkButton, PageHeader, Panel, Select,
+  Skeleton, SkeletonPanel, StatusBadge, useToast,
+} from '../../../components/ui/index.js'
 import { ApiError, api } from '../../../lib/api.js'
 import { queryKeys } from '../../../lib/queryClient.js'
 import { useAuth } from '../../../auth/useAuth.js'
 import { useDocumentTitle } from '../../../layouts/useDocumentTitle.js'
 import { ROLE_LABELS, formatDate, fullName, isVerified, mutationMessage, roleLabel, statusLabel } from './helpers.js'
 
-const BACK = <LinkButton to="/admin/users" variant="secondary">Back to users</LinkButton>
+const HEADER = 'mb-0! lg:mb-0!'
+const BACK = (
+  <LinkButton to="/admin/users" variant="tertiary">
+    <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+    Back to users
+  </LinkButton>
+)
 
 function Fact({ label, children }) {
   return (
@@ -30,8 +40,7 @@ function EditName({ user, onSave }) {
   })
   const unchanged = first.trim() === (user.firstName ?? '') && last.trim() === (user.lastName ?? '')
   return (
-    <section aria-labelledby="name-h" className="flex flex-col gap-4">
-      <h2 id="name-h">Name</h2>
+    <Panel title="Name">
       <form
         onSubmit={(e) => { e.preventDefault(); save.mutate() }}
         className="flex max-w-md flex-col gap-4"
@@ -45,7 +54,7 @@ function EditName({ user, onSave }) {
           </Button>
         </div>
       </form>
-    </section>
+    </Panel>
   )
 }
 
@@ -59,8 +68,7 @@ function ChangeRole({ user, name, onSave }) {
   })
   const dirty = role !== user.role
   return (
-    <section aria-labelledby="role-h" className="flex flex-col gap-4">
-      <h2 id="role-h">Role</h2>
+    <Panel title="Role">
       <div className="flex max-w-md flex-col gap-4">
         <Field label="Role">
           <Select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -82,7 +90,7 @@ function ChangeRole({ user, name, onSave }) {
         error={error}
         onConfirm={() => change.mutateAsync()}
       />
-    </section>
+    </Panel>
   )
 }
 
@@ -94,9 +102,8 @@ function Lifecycle({ user, name, isSelf, run }) {
     try { await fn() } catch (e) { setError(mutationMessage(e)); throw e }
   }
   return (
-    <section aria-labelledby="life-h" className="flex flex-col gap-4">
-      <h2 id="life-h">Account</h2>
-      {isSelf && <p className="text-fg-2">This is your account.</p>}
+    <Panel title="Account">
+      {isSelf && <p className="mb-4 text-fg-2">This is your account.</p>}
       <div className="flex flex-wrap gap-3">
         {user.isDeleted ? (
           <ConfirmDialog
@@ -134,7 +141,7 @@ function Lifecycle({ user, name, isSelf, run }) {
           trigger={<Button variant="destructive">Delete permanently</Button>}
         />
       </div>
-    </section>
+    </Panel>
   )
 }
 
@@ -178,47 +185,61 @@ export default function UserDetail() {
 
   if (q.isPending) {
     return (
-      <div aria-hidden="true" className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-16 rounded-full" />
-          <div className="flex flex-col gap-2"><Skeleton className="h-7 w-48" /><Skeleton className="h-5 w-64" /></div>
+      <div role="status" aria-label="Loading user" className="flex flex-col gap-6">
+        <div aria-hidden="true" className="flex flex-col items-start gap-3">
+          <Skeleton className="h-9 w-2/3 max-w-md" />
+          <Skeleton className="h-6 w-24" />
         </div>
-        <Skeleton className="h-24 w-full max-w-xl" />
+        <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
+          <Panel className="lg:col-span-8"><SkeletonPanel lines={4} /></Panel>
+          <Panel className="lg:col-span-4"><SkeletonPanel lines={6} /></Panel>
+        </div>
       </div>
     )
   }
   if (q.isError) {
     if (q.error instanceof ApiError && q.error.status === 404) {
-      return <EmptyState message="User not found." action={BACK} />
+      return <Panel flush><EmptyState message="User not found." action={<LinkButton to="/admin/users" variant="secondary">Back to users</LinkButton>} /></Panel>
     }
-    return <ErrorState title="Couldn't load this user" message={q.error.message} onRetry={() => q.refetch()} retrying={q.isFetching} headingLevel={1} />
+    return <Panel><ErrorState title="Couldn't load this user" message={q.error.message} onRetry={() => q.refetch()} retrying={q.isFetching} headingLevel={1} /></Panel>
   }
 
   const isSelf = me?.id != null && String(me.id) === String(user.id)
   const profile = user.artisanProfile
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar src={user.avatar?.url} role={user.role} name={name} size={64} decorative />
-          <div className="min-w-0">
-            <h1 className="break-words">{name}</h1>
-            <p className="text-fg-2 break-all">{user.email} <span className="text-muted">{roleLabel(user.role)}</span></p>
-          </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={name}
+        summary={<span className="break-all">{user.email}</span>}
+        actions={BACK}
+        className={HEADER}
+      >
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge>{roleLabel(user.role)}</Badge>
+          <StatusBadge tone={user.isDeleted ? 'ended' : 'done'}>{statusLabel(user)}</StatusBadge>
         </div>
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-xl">
-          <Fact label="Status">{statusLabel(user)}</Fact>
-          <Fact label="Email verified">{isVerified(user) ? 'Yes' : 'No'}</Fact>
-          <Fact label="Created"><span className="tabular">{formatDate(user.createdAt)}</span></Fact>
-          {user.isDeleted && user.deletedAt && <Fact label="Deactivated on"><span className="tabular">{formatDate(user.deletedAt)}</span></Fact>}
-          {user.isDeleted && user.deletionReason && <Fact label="Reason">{user.deletionReason === 'self' ? 'They deactivated it' : 'An admin deactivated it'}</Fact>}
-          <Fact label="Artisan profile">{profile ? 'Yes' : 'No'}</Fact>
-        </dl>
+      </PageHeader>
+      <div className="grid gap-6 lg:grid-cols-12 lg:gap-x-8">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
+          <EditName key={`${user.firstName}|${user.lastName}`} user={user} onSave={patch} />
+          <ChangeRole key={user.role} user={user} name={name} onSave={patch} />
+          <Lifecycle user={user} name={name} isSelf={isSelf} run={run} />
+        </div>
+        <Panel as="aside" aria-label="User facts" title="Details" className="self-start lg:sticky lg:top-6 lg:col-span-4">
+          <div className="mb-4 flex items-center gap-3">
+            <Avatar src={user.avatar?.url} role={user.role} name={name} size={40} decorative />
+            <p className="min-w-0 break-words font-medium">{name}</p>
+          </div>
+          <dl className="flex flex-col gap-4 border-t border-border pt-4">
+            <Fact label="Status">{statusLabel(user)}</Fact>
+            <Fact label="Email verified">{isVerified(user) ? 'Yes' : 'No'}</Fact>
+            <Fact label="Created"><span className="tabular">{formatDate(user.createdAt)}</span></Fact>
+            {user.isDeleted && user.deletedAt && <Fact label="Deactivated on"><span className="tabular">{formatDate(user.deletedAt)}</span></Fact>}
+            {user.isDeleted && user.deletionReason && <Fact label="Reason">{user.deletionReason === 'self' ? 'They deactivated it' : 'An admin deactivated it'}</Fact>}
+            <Fact label="Artisan profile">{profile ? 'Yes' : 'No'}</Fact>
+          </dl>
+        </Panel>
       </div>
-      <EditName key={`${user.firstName}|${user.lastName}`} user={user} onSave={patch} />
-      <ChangeRole key={user.role} user={user} name={name} onSave={patch} />
-      <Lifecycle user={user} name={name} isSelf={isSelf} run={run} />
-      <div>{BACK}</div>
     </div>
   )
 }

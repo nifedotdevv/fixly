@@ -1,3 +1,4 @@
+import { Panel } from '../../../components/ui/index.js'
 import { formatDateTime } from '../../../lib/time.js'
 
 const DISPOSITION = {
@@ -31,11 +32,10 @@ function entries(view) {
 export default function History({ view }) {
   const list = entries(view)
   return (
-    <section aria-labelledby="panel-history" className="flex flex-col gap-3">
-      <h2 id="panel-history">History</h2>
-      <ol className="flex flex-col border-t border-border">
+    <Panel title="History" flush>
+      <ol>
         {list.map((e, i) => (
-          <li key={`${e.label}-${i}`} className="flex flex-col gap-1 border-b border-border py-3 sm:flex-row sm:gap-4">
+          <li key={`${e.label}-${i}`} className="flex flex-col gap-1 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:gap-4 lg:px-6">
             <time dateTime={new Date(e.at).toISOString()} className="tabular shrink-0 text-caption text-fg-2 sm:w-56">
               {formatDateTime(e.at)}
             </time>
@@ -46,6 +46,6 @@ export default function History({ view }) {
           </li>
         ))}
       </ol>
-    </section>
+    </Panel>
   )
 }

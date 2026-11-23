@@ -9,7 +9,7 @@ export default function CompletedPanel({ view }) {
       {review ? (
         <div className="flex flex-col gap-1">
           <p className="flex items-center gap-2 font-medium">
-            <Star size={16} strokeWidth={1.75} aria-hidden="true" />
+            <Star size={16} strokeWidth={1.75} aria-hidden="true" className="fill-accent text-ink" />
             <span>Review: {review.rating} out of 5</span>
           </p>
           {review.comment && <p className="max-w-[60ch] break-words whitespace-pre-line">{review.comment}</p>}

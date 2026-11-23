@@ -5,7 +5,7 @@ import {
   EmptyState, ErrorState, Field, Input, LinkButton, MoneyInput, Pagination, Select, Skeleton,
   StatusBadge, Textarea, ToastProvider, useToast,
 } from '../components/ui/index.js'
-import { SplitTape, Tape } from '../components/tape/index.js'
+import { SplitBar, StageSteps } from '../components/progress/index.js'
 import { REQUEST_STATUSES } from '../lib/requestStatus.js'
 
 const SCALE = [
@@ -18,39 +18,44 @@ const SCALE = [
 ]
 
 const COLORS = [
-  ['bg', 'bg-bg'], ['surface', 'bg-surface'], ['surface-inset', 'bg-surface-inset'],
+  ['bg', 'bg-bg'], ['surface', 'bg-surface'], ['surface-2', 'bg-surface-2'],
   ['fg', 'bg-fg'], ['fg-2', 'bg-fg-2'], ['muted', 'bg-muted'],
   ['border', 'bg-border'], ['border-strong', 'bg-border-strong'], ['ink', 'bg-ink'],
   ['accent', 'bg-accent'], ['accent-hover', 'bg-accent-hover'], ['accent-soft', 'bg-accent-soft'],
-  ['accent-fg', 'bg-accent-fg'],
+  ['accent-fg', 'bg-accent-fg'], ['lime', 'bg-lime'], ['lime-soft', 'bg-lime-soft'], ['on-ink', 'bg-on-ink'],
   ['success', 'bg-success'], ['success-soft', 'bg-success-soft'],
-  ['warning', 'bg-warning'], ['warning-soft', 'bg-warning-soft'], ['warning-mark', 'bg-warning-mark'],
+  ['warning', 'bg-warning'], ['warning-soft', 'bg-warning-soft'],
   ['error', 'bg-error'], ['error-soft', 'bg-error-soft'],
   ['info', 'bg-info'], ['info-soft', 'bg-info-soft'],
 ]
 
 // Literal class strings so Tailwind can see them.
 const FG = {
-  fg: 'text-fg', 'fg-2': 'text-fg-2', muted: 'text-muted', 'accent-fg': 'text-accent-fg',
+  fg: 'text-fg', 'fg-2': 'text-fg-2', muted: 'text-muted', 'accent-fg': 'text-accent-fg', 'on-ink': 'text-on-ink', 'border-strong': 'text-border-strong',
   success: 'text-success', warning: 'text-warning', error: 'text-error', info: 'text-info',
 }
 const BG = {
-  bg: 'bg-bg', surface: 'bg-surface', 'surface-inset': 'bg-surface-inset',
+  bg: 'bg-bg', surface: 'bg-surface', 'surface-2': 'bg-surface-2', ink: 'bg-ink', error: 'bg-error',
   accent: 'bg-accent', 'accent-hover': 'bg-accent-hover', 'accent-soft': 'bg-accent-soft',
+  lime: 'bg-lime', 'lime-soft': 'bg-lime-soft',
   'success-soft': 'bg-success-soft', 'warning-soft': 'bg-warning-soft',
   'error-soft': 'bg-error-soft', 'info-soft': 'bg-info-soft',
 }
 
 const PAIRS = [
-  ...['fg', 'fg-2', 'muted'].flatMap((f) => ['bg', 'surface', 'surface-inset'].map((b) => [f, b])),
-  ['accent-fg', 'accent'], ['accent-fg', 'accent-hover'], ['fg', 'accent-soft'],
+  ...['fg', 'fg-2', 'muted'].flatMap((f) => ['bg', 'surface', 'surface-2'].map((b) => [f, b])),
+  ...['fg', 'fg-2', 'muted'].map((f) => [f, 'accent-soft']),
+  ['fg', 'accent'], ['fg', 'accent-hover'],
+  ['fg', 'lime'], ['fg', 'lime-soft'], ['muted', 'lime-soft'],
+  ['on-ink', 'ink'], ['on-ink', 'error'],
   ...['success', 'warning', 'error', 'info'].flatMap((s) => [[s, `${s}-soft`], [s, 'bg']]),
+  ['border-strong', 'surface', 3],
 ]
 
 const SPACING = [1, 2, 3, 4, 6, 8, 12, 16]
 const SPACING_CLS = { 1: 'w-1', 2: 'w-2', 3: 'w-3', 4: 'w-4', 6: 'w-6', 8: 'w-8', 12: 'w-12', 16: 'w-16' }
 
-function ContrastRow({ fgName, bgName }) {
+function ContrastRow({ fgName, bgName, min = 4.5 }) {
   const ref = useRef(null)
   const [ratio, setRatio] = useState(null)
 
@@ -61,10 +66,10 @@ function ContrastRow({ fgName, bgName }) {
     if (fg && bg) setRatio(contrastRatio(fg, bg))
   }, [])
 
-  const pass = ratio !== null && ratio >= 4.5
+  const pass = ratio !== null && ratio >= min
   return (
     <tr className="border-b border-border">
-      <td className="py-2 pr-4">{fgName} on {bgName}</td>
+      <td className="py-2 pr-4">{fgName} on {bgName}{min < 4.5 ? ` (${min}:1)` : ''}</td>
       <td className="py-2 pr-4">
         <span ref={ref} className={`${FG[fgName]} ${BG[bgName]} rounded-sm px-3 py-1 border border-border`}>
           Quote sent
@@ -115,7 +120,7 @@ function ComponentsSection() {
 
       <Sub title="Buttons">
         <div className="grid gap-4 sm:grid-cols-[8rem_1fr] items-center">
-          {['primary', 'secondary', 'tertiary', 'destructive'].map((v) => (
+          {['primary', 'ink', 'secondary', 'tertiary', 'destructive'].map((v) => (
             <div key={v} className="contents">
               <span className="text-caption text-muted">{v}</span>
               <div className="flex flex-wrap items-center gap-3">
@@ -123,6 +128,7 @@ function ComponentsSection() {
                 <Button variant={v} disabled>Disabled</Button>
                 <Button variant={v} loading loadingLabel="Sending…">Send quote</Button>
                 <Button variant={v} size="compact">Compact</Button>
+                <Button variant={v} size="large">Large</Button>
               </div>
             </div>
           ))}
@@ -221,39 +227,39 @@ function ComponentsSection() {
   )
 }
 
-function TapeSection() {
+function StageStepsSection() {
   const [index, setIndex] = useState(0)
   const [deadline] = useState(() => new Date(Date.now() + 22 * 60000).toISOString())
   const cycled = REQUEST_STATUSES[index]
 
   return (
     <section className="space-y-6">
-      <h2>Tape</h2>
+      <h2>Stage steps</h2>
       <Sub title="Every status">
         <div className="space-y-6">
           {REQUEST_STATUSES.map((status) => (
             <div key={status} className="space-y-1">
               <p className="text-caption text-fg-2">{status}</p>
-              <Tape status={status} view={{ status }} />
+              <StageSteps status={status} view={{ status }} />
             </div>
           ))}
           <div className="space-y-1">
             <p className="text-caption text-fg-2">cancelled after a quote</p>
-            <Tape status="cancelled" view={{ status: 'cancelled', quote: { total: 10000000 } }} />
+            <StageSteps status="cancelled" view={{ status: 'cancelled', quote: { total: 10000000 } }} />
           </div>
         </div>
       </Sub>
       <Sub title="Deadline">
-        <Tape status="quote_submitted" view={{ status: 'quote_submitted' }} deadline={deadline} />
+        <StageSteps status="quote_submitted" view={{ status: 'quote_submitted' }} deadline={deadline} />
       </Sub>
       <Sub title="Mini, for list rows">
         <div className="max-w-sm space-y-3">
-          <Tape status="repair_in_progress" view={{ status: 'repair_in_progress' }} size="mini" />
-          <Tape status="quote_expired" view={{ status: 'quote_expired' }} size="mini" />
+          <StageSteps status="repair_in_progress" view={{ status: 'repair_in_progress' }} size="mini" />
+          <StageSteps status="quote_expired" view={{ status: 'quote_expired' }} size="mini" />
         </div>
       </Sub>
       <Sub title="Deposit and balance">
-        <SplitTape total={18500000} depositAmount={12950000} balanceAmount={5550000} currency="NGN" />
+        <SplitBar total={18500000} depositAmount={12950000} balanceAmount={5550000} currency="NGN" />
       </Sub>
       <Sub title="Motion">
         <div className="space-y-3">
@@ -261,7 +267,7 @@ function TapeSection() {
             Next status
           </Button>
           <p className="text-caption text-fg-2">{cycled}</p>
-          <Tape status={cycled} view={{ status: cycled }} />
+          <StageSteps status={cycled} view={{ status: cycled }} />
         </div>
       </Sub>
     </section>
@@ -317,7 +323,7 @@ function SpecimenBody() {
               </tr>
             </thead>
             <tbody>
-              {PAIRS.map(([f, b]) => <ContrastRow key={`${f}-${b}`} fgName={f} bgName={b} />)}
+              {PAIRS.map(([f, b, min]) => <ContrastRow key={`${f}-${b}`} fgName={f} bgName={b} min={min} />)}
             </tbody>
           </table>
         </div>
@@ -338,10 +344,10 @@ function SpecimenBody() {
       <section className="space-y-4">
         <h2>Radius, shadow and focus</h2>
         <div className="flex flex-wrap gap-6 items-center">
-          <div className="bg-surface border border-border rounded-sm size-24 p-3 text-caption">radius-sm 4px</div>
-          <div className="bg-surface border border-border rounded-md size-24 p-3 text-caption">radius-md 8px</div>
+          <div className="bg-surface border border-border rounded-sm size-24 p-3 text-caption">radius-sm 8px</div>
+          <div className="bg-surface border border-border rounded-md size-24 p-3 text-caption">radius-md 16px</div>
           <div className="bg-surface shadow-overlay rounded-md size-24 p-3 text-caption">shadow-overlay</div>
-          <button type="button" className="bg-accent text-accent-fg rounded-sm h-11 px-4">
+          <button type="button" className="bg-accent text-accent-fg rounded-md h-11 px-4">
             Tab here to see the focus ring
           </button>
         </div>
@@ -349,7 +355,7 @@ function SpecimenBody() {
 
       <ComponentsSection />
 
-      <TapeSection />
+      <StageStepsSection />
     </main>
   )
 }

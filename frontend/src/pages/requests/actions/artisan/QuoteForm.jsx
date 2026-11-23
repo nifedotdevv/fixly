@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, DateTimeInput, Field, MoneyInput, Textarea } from '../../../../components/ui/index.js'
 import { zoneLabel } from '../../../../lib/time.js'
-import { SplitTape } from '../../../../components/tape/index.js'
+import { SplitBar } from '../../../../components/progress/index.js'
 import FormErrors from './FormErrors.jsx'
 import { splitQuote } from './splitQuote.js'
 import { validateQuote } from './validateQuote.js'
@@ -48,7 +48,7 @@ export default function QuoteForm({ action, mutation }) {
       {split && (
         <div className="flex flex-col gap-2">
           <p className="font-medium text-fg">Payment split</p>
-          <SplitTape total={values.total} {...split} />
+          <SplitBar total={values.total} {...split} />
         </div>
       )}
       <p className="text-caption text-muted">Times are in {zoneLabel()}</p>

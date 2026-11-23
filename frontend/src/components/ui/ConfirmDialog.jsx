@@ -44,9 +44,9 @@ export default function ConfirmDialog({
     <AlertDialog.Root open={open} onOpenChange={setOpen}>
       {trigger && <AlertDialog.Trigger asChild>{trigger}</AlertDialog.Trigger>}
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="ui-overlay fixed inset-0 bg-fg/40" />
-        <AlertDialog.Content className="ui-dialog fixed left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md bg-surface p-4 sm:p-6 shadow-overlay">
-          <AlertDialog.Title className="font-display text-h3" style={{ fontStretch: '88%', fontWeight: 720 }}>{title}</AlertDialog.Title>
+        <AlertDialog.Overlay className="ui-overlay fixed inset-0 bg-scrim" />
+        <AlertDialog.Content className="ui-dialog fixed left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md border border-border bg-surface p-4 sm:p-6 shadow-overlay">
+          <AlertDialog.Title className="font-display text-h3">{title}</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-fg-2">{description}</AlertDialog.Description>
           {children}
           {typeToConfirm != null && (

@@ -22,9 +22,12 @@ const DESTRUCTIVE = ['cancel', 'decline-quote']
 
 // Runs the action; a 409 is handled by the hook (refetch plus conflict), anything else surfaces here.
 function ActionButton({ action, variant, mutation, name }) {
-  const { mutateAsync, isPending, error, errors } = mutation
+  const { mutateAsync, error, errors, variables } = mutation
   const run = () => mutateAsync({ action })
-  const message = errors[0] ?? error?.message
+  // One mutation serves every button, so only the button that ran it shows its spinner and error.
+  const mine = variables?.action?.id === action.id
+  const isPending = mine && mutation.isPending
+  const message = mine ? (errors[0] ?? error?.message) : undefined
 
   const gated = Boolean(action.availableFrom)
   if (action.confirm && !gated) {

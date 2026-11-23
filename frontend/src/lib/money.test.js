@@ -18,6 +18,6 @@ describe('money', () => {
     expect(formatMoney({ amount: 1500, currency: 'JPY' })).toMatch(/1,500/)
   })
   it('formats whole naira', () => {
-    expect(formatNaira(5000)).toBe('₦5,000')
+    expect(formatNaira(5000)).toBe('₦5,000.00')
   })
 })

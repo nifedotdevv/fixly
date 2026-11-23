@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../../lib/api.js'
 import { Button, Field, Input } from '../../components/ui/index.js'
+import AuthFrame from './AuthFrame.jsx'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -28,21 +29,20 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="flex max-w-[60ch] flex-col items-start gap-4 py-8">
-      <h1>Reset your password</h1>
+    <AuthFrame title="Reset your password" intro="Enter your email and we'll send you a link to choose a new password.">
       {sent ? (
         <>
           <p role="status" className="text-fg-2">If that address has an account, a link is on its way. Check your inbox.</p>
-          <Link to="/login" className="text-accent underline underline-offset-2">Back to sign in</Link>
+          <Link to="/login" className="link">Back to sign in</Link>
         </>
       ) : (
-        <form onSubmit={submit} noValidate className="flex w-full max-w-sm flex-col gap-4">
+        <form onSubmit={submit} noValidate className="flex w-full flex-col gap-4">
           <Field label="Email" error={error}>
             <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Button type="submit" loading={busy} loadingLabel="Sending…">Send reset link</Button>
         </form>
       )}
-    </div>
+    </AuthFrame>
   )
 }

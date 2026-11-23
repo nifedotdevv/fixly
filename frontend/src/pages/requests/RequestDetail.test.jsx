@@ -294,3 +294,36 @@ test('a bad id (400) shows the same state', async () => {
   mount('bad')
   expect(await screen.findByText("This request doesn't exist or isn't yours.")).toBeInTheDocument()
 })
+
+test('the header links back to the request list', async () => {
+  serve({ 'GET /service-requests/r1': ok(FIXTURES.quote_submitted) })
+  mount()
+  await screen.findByRole('heading', { level: 1 })
+  expect(screen.getByRole('link', { name: 'Back to requests' })).toHaveAttribute('href', '/requests')
+})
+
+test('the facts panel groups people, schedule and money', async () => {
+  serve({ 'GET /service-requests/r1': ok(FIXTURES.quote_submitted) })
+  mount()
+  const facts = await screen.findByRole('complementary', { name: 'Request facts' })
+  expect(within(facts).getByRole('heading', { level: 2, name: 'Details' })).toBeInTheDocument()
+  for (const name of ['People', 'Schedule', 'Money']) {
+    expect(within(facts).getByRole('heading', { level: 3, name })).toBeInTheDocument()
+  }
+})
+
+test('panels are never nested', async () => {
+  serve({ 'GET /service-requests/r1': ok(FIXTURES.quote_submitted) })
+  const { container } = mount()
+  await screen.findByRole('heading', { level: 1 })
+  const sel = 'section.rounded-lg.border.bg-surface, aside.rounded-lg.border.bg-surface'
+  const bordered = [...container.querySelectorAll(sel)]
+  expect(bordered.length).toBeGreaterThan(3)
+  for (const el of bordered) expect(el.parentElement.closest(sel)).toBeNull()
+})
+
+test('the loading state has role=status', () => {
+  serve({ 'GET /service-requests/r1': () => new Promise(() => {}) })
+  mount()
+  expect(screen.getByRole('status', { name: 'Loading request' })).toBeInTheDocument()
+})

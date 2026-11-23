@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Button, Field, Input } from '../../components/ui/index.js'
 import { api, ApiError } from '../../lib/api.js'
+import AuthFrame from './AuthFrame.jsx'
 
-const LINK = 'text-accent underline underline-offset-4 hover:text-accent-hover'
+const LINK = 'link'
 
 export default function Reactivate() {
   const [email, setEmail] = useState('')
@@ -31,15 +32,16 @@ export default function Reactivate() {
   }
 
   return (
-    <div className="flex max-w-md flex-col gap-6 py-8">
-      <h1>Reactivate your account</h1>
+    <AuthFrame
+      title="Reactivate your account"
+      intro={restored ? undefined : 'Deleted accounts can be restored within 30 days. Use the email and password you had.'}
+    >
       {restored ? (
         <p role="status" className="rounded-sm bg-success-soft p-3 text-fg">
           Account restored. <Link to="/login" className={LINK}>Sign in.</Link>
         </p>
       ) : (
         <>
-          <p className="text-fg-2">Deleted accounts can be restored within 30 days. Use the email and password you had.</p>
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             {failure && <p role="alert" className="rounded-sm bg-error-soft p-3 text-fg">{failure}</p>}
             <Field label="Email">
@@ -52,6 +54,6 @@ export default function Reactivate() {
           </form>
         </>
       )}
-    </div>
+    </AuthFrame>
   )
 }

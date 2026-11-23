@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -91,4 +91,34 @@ test('restore shows only for deactivated users', async () => {
   await screen.findByRole('heading', { name: 'Ada Obi' })
   expect(screen.queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Deactivate' })).toBeInTheDocument()
+})
+
+test('the list has one h1 and links each row to its user', async () => {
+  mockFetch([['GET', '/admin/users', 200, { data: [base, { ...base, id: 'u2', email: 'bo@example.com' }], meta: { totalPages: 1 } }]])
+  mount('/admin/users')
+  const list = await screen.findByRole('list', { name: 'Users' })
+  expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+  expect(within(list).getAllByRole('link')[0]).toHaveAttribute('href', '/admin/users/u1')
+  expect(within(list).getAllByText('Email verified').length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+})
+
+test('clear filters resets include deleted', async () => {
+  mockFetch([['GET', '/admin/users', 200, { data: [base], meta: { totalPages: 1 } }]])
+  mount('/admin/users?includeDeleted=true')
+  await screen.findByText('ada@example.com')
+  await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+  expect(screen.getByTestId('search')).toHaveTextContent('')
+  expect(screen.getByLabelText('Include deleted')).not.toBeChecked()
+})
+
+test('the detail has a back link and never nests a panel inside a panel', async () => {
+  mockFetch([detail(base)])
+  const { container } = mount('/admin/users/u1')
+  await screen.findByRole('heading', { name: 'Ada Obi', level: 1 })
+  expect(screen.getByRole('link', { name: 'Back to users' })).toHaveAttribute('href', '/admin/users')
+  const PANEL = 'section.rounded-lg.border, aside.rounded-lg.border'
+  const panels = container.querySelectorAll(PANEL)
+  expect(panels).toHaveLength(4)
+  panels.forEach((p) => expect(p.parentElement.closest(PANEL)).toBeNull())
 })

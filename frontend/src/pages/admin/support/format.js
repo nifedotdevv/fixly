@@ -8,7 +8,3 @@ export function excerpt(text, max = 90) {
   return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat
 }
 
-export const shortId = (id) => String(id ?? '').slice(-8)
-
-export const TH = 'px-3 py-2 text-left text-caption font-medium text-fg-2'
-export const TD = 'px-3 py-3 align-top'

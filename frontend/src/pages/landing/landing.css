@@ -1,0 +1,123 @@
+/* Hero gradient, after calendly.com: dark at the top so light text reads, opening into the
+   brand colours (lime, then lemon) where the feature card sits. Interpolated in OKLCH so the
+   teal-to-lime run stays clean instead of going muddy. */
+.hero-gradient {
+  background-color: var(--color-band);
+  background-image:
+    radial-gradient(70% 45% at 8% 0%, rgb(7 26 49 / 0.9), transparent 70%),
+    radial-gradient(55% 40% at 95% 12%, rgb(18 84 92 / 0.85), transparent 70%),
+    radial-gradient(50% 30% at 100% 92%, color-mix(in oklch, var(--color-accent) 90%, transparent), transparent 70%),
+    linear-gradient(in oklch 180deg,
+      rgb(9 33 58) 0%,
+      rgb(13 52 66) 26%,
+      rgb(21 88 80) 50%,
+      rgb(40 118 82) 60%,
+      var(--color-lime) 80%,
+      var(--color-accent) 100%);
+}
+
+/* Soft closing and section containers: the page ground warming into lime and lemon at the base. */
+.soft-gradient {
+  background-color: var(--color-surface-2);
+  background-image:
+    radial-gradient(60% 50% at 20% 100%, color-mix(in oklch, var(--color-lime) 35%, transparent), transparent 70%),
+    radial-gradient(55% 45% at 85% 100%, color-mix(in oklch, var(--color-accent) 40%, transparent), transparent 70%);
+}
+
+/* Saturated media squares, as the reference uses: a light top, the brand colour, a deep base. */
+.media-lime {
+  background-image: linear-gradient(in oklch 180deg,
+    var(--color-lime-soft) 0%, var(--color-surface) 30%, var(--color-lime) 68%, rgb(21 88 80) 100%);
+}
+.media-lemon {
+  background-image: linear-gradient(in oklch 180deg,
+    var(--color-accent-soft) 0%, var(--color-surface) 28%, var(--color-accent) 66%, rgb(40 118 82) 100%);
+}
+.media-teal {
+  background-image: linear-gradient(in oklch 180deg,
+    rgb(220 240 236) 0%, var(--color-surface) 30%, rgb(150 222 200) 64%, rgb(13 52 66) 100%);
+}
+.media-soft {
+  background-image: linear-gradient(in oklch 160deg, var(--color-lime-soft) 0%, var(--color-accent-soft) 100%);
+}
+
+/* Hero tab row and the notch that joins the active tab to the card below. */
+.hero-tabs { --tab: 48px; --gap: 8px; }
+@media (min-width: 40rem) { .hero-tabs { --tab: 56px; } }
+
+/* Connector from the active tab into the card, as on the reference: a narrow stem in the card colour
+   with concave fillets where it meets the tab and the card. It bridges the 16px gap (4px row padding
+   + the card's 12px margin) and overlaps each end by 1px so no seam shows. */
+.tab-notch {
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 40px;
+  height: 18px;
+  color: var(--color-bg);
+  translate: calc((var(--i) - 1.5) * (var(--tab) + var(--gap)) - 20px) 0;
+  transition: translate var(--duration-normal) var(--ease-out);
+  pointer-events: none;
+}
+
+.panel-in { animation: panel-in var(--duration-slow) var(--ease-out); }
+@keyframes panel-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* Horizontal accordion cards: one row from 1024px, every card open below. */
+@media (min-width: 64rem) {
+  .stage-row { display: flex; height: 523px; }
+  .stage-card {
+    flex: 1 1 0;
+    min-width: 0;
+    transition: flex-grow 500ms ease-in-out, box-shadow 180ms ease-in-out;
+  }
+  .stage-card[data-open="true"] { flex-grow: 1.55; }
+  .stage-extra {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity var(--duration-slow) var(--ease-out), visibility 0s linear var(--duration-slow);
+  }
+  .stage-card[data-open="true"] .stage-extra {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity var(--duration-slow) var(--ease-out) 200ms, visibility 0s;
+  }
+  /* Collapsed cards show a decorative gradient arch holding a compact mock. */
+  .stage-peek {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out), visibility 0s linear var(--duration-fast);
+  }
+  .stage-card[data-open="false"] .stage-peek {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity var(--duration-slow) var(--ease-out) 200ms, visibility 0s;
+  }
+}
+
+/* Scroll-linked list. Inactive items are muted by colour (never opacity), so text keeps its contrast. */
+.scroll-item-text {
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.scroll-mock { opacity: 0; transition: opacity var(--duration-slow) var(--ease-out); }
+.scroll-mock[data-active="true"] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-notch { transition: none; }
+  .panel-in { animation-name: panel-in-reduced; }
+  @keyframes panel-in-reduced { from { opacity: 0; } to { opacity: 1; } }
+  .stage-card, .stage-peek, .stage-extra { transition: none !important; }
+}
+
+/* Dark theme: lemon-soft turns olive on a dark ground, so the soft media panel runs lime-soft into surface-2. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .media-soft {
+    background-image: linear-gradient(in oklch 160deg, var(--color-lime-soft) 0%, var(--color-surface-2) 100%);
+  }
+}
+:root[data-theme="dark"] .media-soft {
+  background-image: linear-gradient(in oklch 160deg, var(--color-lime-soft) 0%, var(--color-surface-2) 100%);
+}

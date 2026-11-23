@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
 import { RedirectIfSignedIn, RequireAuth, RequireRole } from './auth/guards.jsx'
 import DashboardRedirect from './auth/DashboardRedirect.jsx'
+import AdaptiveLayout from './layouts/AdaptiveLayout.jsx'
 import AdminLayout from './layouts/AdminLayout.jsx'
 import AppLayout from './layouts/AppLayout.jsx'
 import PublicLayout from './layouts/PublicLayout.jsx'
@@ -51,8 +52,6 @@ export default function AppRoutes() {
 
       <Route element={<PublicLayout />}>
         <Route index element={<Landing />} />
-        <Route path="artisans" element={<Directory />} />
-        <Route path="artisans/:profileId" element={<ArtisanDetail />} />
         <Route element={<RedirectIfSignedIn />}>
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
@@ -63,6 +62,11 @@ export default function AppRoutes() {
         <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="confirm-email-change" element={<ConfirmEmailChange />} />
         <Route path="*" element={<NotFound />} />
+      </Route>
+
+      <Route element={<AdaptiveLayout />}>
+        <Route path="artisans" element={<Directory />} />
+        <Route path="artisans/:profileId" element={<ArtisanDetail />} />
       </Route>
 
       <Route element={<RequireAuth />}>

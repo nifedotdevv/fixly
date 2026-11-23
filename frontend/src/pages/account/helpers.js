@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 
-export const LINK = 'text-accent underline underline-offset-4 hover:text-accent-hover'
+export const LINK = 'link'
+
+export const sectionId = (title) => title.replace(/\W+/g, '-').toLowerCase()
 
 // Joi errors arrive as strings like "password is invalid"; field errors elsewhere as {field, message}.
 export function fieldErrors(errors, names) {

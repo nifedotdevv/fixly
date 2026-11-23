@@ -27,9 +27,9 @@ function Rating({ value, onChange, error, groupRef }) {
             key={n}
             value={String(n)}
             aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
-            className={`flex size-11 items-center justify-center rounded-sm text-muted hover:text-accent data-[state=checked]:text-accent ${MOTION}`}
+            className={`flex size-11 items-center justify-center rounded-sm ${MOTION}`}
           >
-            <Star size={28} strokeWidth={1.75} aria-hidden="true" fill={n <= value ? 'currentColor' : 'none'} className={n <= value ? 'text-accent' : ''} />
+            <Star size={28} strokeWidth={1.75} aria-hidden="true" className={n <= value ? 'fill-accent text-ink' : 'fill-transparent text-border-strong'} />
           </RadioGroup.Item>
         ))}
       </RadioGroup.Root>

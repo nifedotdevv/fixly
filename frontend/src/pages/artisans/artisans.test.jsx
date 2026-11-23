@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -82,7 +82,8 @@ test('empty and 400 states', async () => {
   list([], 1)
   const { unmount } = mount(<Directory />, '/artisans?skill=x', '/artisans')
   expect(await screen.findByText('No artisans match these filters.')).toBeInTheDocument()
-  await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+  // The filter panel and the empty state each offer "Clear filters".
+  await userEvent.click(screen.getAllByRole('button', { name: 'Clear filters' }).at(-1))
   await waitFor(() => expect(screen.getByTestId('search')).toHaveTextContent(/^$/))
   unmount()
   reply(400, { message: 'skill must not exceed 60 characters' })
@@ -110,10 +111,49 @@ test('clear filters cancels a pending debounce', async () => {
   mount(<Directory />, '/artisans?skill=x', '/artisans')
   await screen.findByText('No artisans match these filters.')
   await user.type(screen.getByLabelText('Area'), 'nowhere')
-  await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+  await user.click(screen.getAllByRole('button', { name: 'Clear filters' })[0])
   await new Promise((r) => setTimeout(r, 700))
   expect(screen.getByTestId('search')).toHaveTextContent(/^$/)
   expect(screen.getByLabelText('Area')).toHaveValue('')
+})
+
+test('prices show two decimals', async () => {
+  list([profile()])
+  mount(<Directory />, '/artisans', '/artisans')
+  expect(await screen.findByText('From ₦15,000.00')).toBeInTheDocument()
+})
+
+test('each directory row is a single link to the profile', async () => {
+  list([profile(), profile({ id: 'p2', user_id: { id: 'u2', firstName: 'Ngozi', lastName: 'Eze' } })])
+  mount(<Directory />, '/artisans', '/artisans')
+  await screen.findByText('Ngozi Eze')
+  const items = screen.getAllByRole('listitem').filter((li) => li.querySelector('a'))
+  expect(items).toHaveLength(2)
+  items.forEach((li, i) => {
+    expect(within(li).getAllByRole('link')).toHaveLength(1)
+    expect(within(li).getByRole('link')).toHaveAttribute('href', `/artisans/p${i + 1}`)
+  })
+})
+
+test('detail: rating is hidden with no reviews and shown with reviews', async () => {
+  detail()
+  const { unmount } = open()
+  await screen.findByRole('heading', { level: 1 })
+  expect(screen.getByRole('banner')).not.toHaveTextContent('No reviews yet')
+  unmount()
+  detail({ ratingSummary: { count: 3, average: 4.5 } })
+  open()
+  await screen.findByRole('heading', { level: 1 })
+  expect(screen.getByRole('banner')).toHaveTextContent('4.5 (3 reviews)')
+})
+
+test('detail: one h1 and the request action', async () => {
+  auth = { me: { role: 'house_owner', emailVerified: true }, status: 'signed-in' }
+  detail()
+  open()
+  await screen.findByRole('link', { name: 'Request an inspection' })
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  expect(screen.getAllByText('Request an inspection')).toHaveLength(1)
 })
 
 const detail = (over) => reply(200, { data: profile(over) })
