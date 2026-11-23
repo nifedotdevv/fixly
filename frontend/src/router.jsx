@@ -13,6 +13,11 @@ import ResetPassword from './pages/auth/ResetPassword.jsx'
 import VerifyEmail from './pages/auth/VerifyEmail.jsx'
 import ConfirmEmailChange from './pages/auth/ConfirmEmailChange.jsx'
 import Account from './pages/account/Account.jsx'
+import Directory from './pages/artisans/Directory.jsx'
+import ArtisanDetail from './pages/artisans/Detail.jsx'
+import WorkspaceProfile from './pages/workspace/Profile.jsx'
+import NewRequest from './pages/requests/NewRequest.jsx'
+import RequestList from './pages/requests/RequestList.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Placeholder from './pages/Placeholder.jsx'
 
@@ -40,8 +45,8 @@ export default function AppRoutes() {
 
       <Route element={<PublicLayout />}>
         <Route index element={page('Fixly')} />
-        <Route path="artisans" element={page('Find an artisan')} />
-        <Route path="artisans/:profileId" element={page('Artisan profile')} />
+        <Route path="artisans" element={<Directory />} />
+        <Route path="artisans/:profileId" element={<ArtisanDetail />} />
         <Route element={<RedirectIfSignedIn />}>
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
@@ -59,14 +64,14 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<DashboardRedirect />} />
           <Route path="account" element={<Account />} />
           <Route element={<RequireRole roles={HOUSE_OWNER} />}>
-            <Route path="artisans/:profileId/request" element={page('Request an inspection')} />
+            <Route path="artisans/:profileId/request" element={<NewRequest />} />
           </Route>
           <Route element={<RequireRole roles={PARTICIPANTS} />}>
-            <Route path="requests" element={page('Requests')} />
+            <Route path="requests" element={<RequestList />} />
             <Route path="requests/:id" element={page('Request')} />
           </Route>
           <Route element={<RequireRole roles={ARTISAN} />}>
-            <Route path="workspace/profile" element={page('My profile')} />
+            <Route path="workspace/profile" element={<WorkspaceProfile />} />
           </Route>
         </Route>
 
