@@ -7,16 +7,32 @@ import {
   Button, ConfirmDialog, DataRow, Dialog, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, Panel, SkeletonRows,
   Textarea, useToast,
 } from '../../../components/ui/index.js'
-import { MOTION } from '../../../components/ui/cn.js'
+import { MOTION, cn } from '../../../components/ui/cn.js'
 import { api } from '../../../lib/api.js'
 import { formatMoney } from '../../../lib/money.js'
 import { queryKeys } from '../../../lib/queryClient.js'
 import { formatDateTime } from '../../../lib/time.js'
 import { useDocumentTitle } from '../../../layouts/useDocumentTitle.js'
-import { PAGE_SIZE, PURPOSE, pageOf } from './format.js'
+import { PAGE_SIZE, PURPOSE, byNeedsYou, excerpt, pageOf, refundStatus } from './format.js'
 
-const COLUMNS = 'lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_7rem_5.5rem]'
-const HEADS = ['Payment reference', 'Purpose', 'Reason', 'Created', 'Amount']
+const COLUMNS = 'lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1.2fr)_7rem_7.5rem]'
+const HEADS = ['Payment reference', 'Purpose', 'Reason', 'Refund', 'Created', 'Amount']
+
+const TONE = {
+  info: 'bg-info-soft text-info',
+  warning: 'bg-warning-soft text-warning',
+  error: 'bg-error-soft text-error',
+  neutral: 'bg-surface-2 text-fg-2',
+}
+
+function RefundCell({ status }) {
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className={cn('inline-flex rounded-sm px-2 py-1 text-caption font-medium', TONE[status.tone])}>{status.label}</span>
+      {status.detail && <span className="break-words text-caption text-fg-2">{status.detail}</span>}
+    </div>
+  )
+}
 
 const DISPOSITIONS = [
   { value: 'externally_refunded', label: 'Refunded outside Fixly', done: 'Marked as refunded outside Fixly' },
@@ -25,7 +41,7 @@ const DISPOSITIONS = [
 
 function ResolvePayment({ payment }) {
   const queryClient = useQueryClient()
-  const toast = useToast()
+  const { toast } = useToast()
   const [step, setStep] = useState('closed')
   const [disposition, setDisposition] = useState('')
   const [note, setNote] = useState('')
@@ -62,6 +78,12 @@ function ResolvePayment({ payment }) {
       })
     } catch (err) {
       setServerError(err.message)
+      // The payment changed underneath (for example an automatic refund started): show its current state.
+      // The refreshed row may no longer offer Resolve, closing this dialog, so the reason also goes in a toast.
+      if (err.status === 409) {
+        toast({ title: err.message, tone: 'neutral' })
+        queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] })
+      }
       throw err
     }
     finished.current = true
@@ -135,7 +157,10 @@ export default function PaymentsQueue() {
     queryKey: queryKeys.adminPayments(params),
     queryFn: ({ signal }) => api('/admin/support/payments', { query: params, signal }),
   })
-  const rows = query.data?.data ?? []
+  // One clock per render keeps every row's status and the order consistent.
+  const [now] = useState(Date.now)
+  const rows = byNeedsYou(query.data?.data ?? [], now)
+  const needsYou = rows.filter((p) => refundStatus(p, now).needsYou).length
   const totalPages = query.data?.meta?.totalPages ?? 1
   const problemIds = new Set(useQuery({
     queryKey: queryKeys.adminProblems({ page: 1, limit: 100 }),
@@ -143,7 +168,10 @@ export default function PaymentsQueue() {
   }).data?.data?.map((r) => r._id))
 
   const total = query.data?.meta?.total ?? rows.length
-  const summary = query.isSuccess ? `${total} ${total === 1 ? 'payment' : 'payments'} to reconcile` : ''
+  const summary = query.isSuccess
+    // The "need you" count is only exact when every payment is on this page.
+    ? `${total} ${total === 1 ? 'payment' : 'payments'} to reconcile${rows.length && rows.length === total ? `, ${needsYou} ${needsYou === 1 ? 'needs' : 'need'} you` : ''}`
+    : ''
 
   let body
   if (query.isPending) body = <Panel flush><SkeletonRows compact count={6} /></Panel>
@@ -177,11 +205,18 @@ export default function PaymentsQueue() {
                   )}
                 </DataRow.Cell>
                 <DataRow.Cell className="order-3 basis-full text-fg-2 lg:order-none lg:basis-auto lg:text-fg">{PURPOSE[p.purpose] ?? p.purpose}</DataRow.Cell>
-                <DataRow.Cell className="order-4 basis-full break-words text-fg-2 lg:order-none lg:basis-auto lg:text-fg">{p.reason}</DataRow.Cell>
-                <DataRow.Cell numeric className="order-5 basis-full text-fg-2 lg:order-none lg:basis-auto lg:text-fg">{formatDateTime(p.createdAt)}</DataRow.Cell>
+                <DataRow.Cell className="order-4 basis-full break-words text-fg-2 lg:order-none lg:basis-auto lg:text-fg">
+                  {/* Full on phones, where rows stack; shortened in the desktop table, with the full text on hover. */}
+                  <span className="lg:hidden">{p.reason}</span>
+                  <span className="hidden lg:inline" title={p.reason}>{excerpt(p.reason, 70)}</span>
+                </DataRow.Cell>
+                <DataRow.Cell className="order-5 basis-full lg:order-none lg:basis-auto"><RefundCell status={refundStatus(p, now)} /></DataRow.Cell>
+                <DataRow.Cell numeric className="order-6 basis-full text-fg-2 lg:order-none lg:basis-auto lg:text-fg">{formatDateTime(p.createdAt)}</DataRow.Cell>
                 <DataRow.Cell numeric align="end" className="order-2 shrink-0 font-medium">{formatMoney(p)}</DataRow.Cell>
-                <DataRow.Cell className="order-6 flex justify-end lg:order-none">
-                  <ResolvePayment payment={p} />
+                <DataRow.Cell className="order-7 flex justify-end lg:order-none">
+                  {refundStatus(p, now).needsYou
+                    ? <ResolvePayment payment={p} />
+                    : <span className="text-caption text-fg-2">No action needed</span>}
                 </DataRow.Cell>
               </DataRow>
             ))}
