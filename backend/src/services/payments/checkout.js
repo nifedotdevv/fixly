@@ -42,11 +42,12 @@ const attemptView = (attempt, paymentDeadline) => ({
 const RECHECK_LIMIT = 5;
 
 // --- Money Paystack took that cannot move the booking ---------------------------------------------------------
-// Every successful charge ends up as a PaymentEvent: applied, or reconciliation_required for support and refund.
+// Every successful charge ends up as a PaymentEvent: applied, or reconciliation_required and refunded.
+// A reason says only why the money could not count; what happens to it is the event's refund state.
 // None is ever dropped, and none of these paths can advance a booking.
 const REASONS = {
-  notEligible: "Paid when the booking was no longer waiting for this payment (for example a second checkout). Support reconciliation or a refund is required.",
-  amount: "The provider reported a different amount or currency than the checkout that was started. Support reconciliation or a refund is required.",
+  notEligible: "Paid after the booking stopped waiting for this payment, for example a second checkout for something already paid.",
+  amount: "Paystack reported a different amount or currency than the checkout that was started.",
 };
 const recordUnapplied = async (attempt, record, { amount = attempt.amount, currency = attempt.currency, reason }) => {
   const _id = providerReference(attempt._id);
