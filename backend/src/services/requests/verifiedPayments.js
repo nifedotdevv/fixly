@@ -12,13 +12,14 @@ const outcomeView = (event) => ({
 });
 const sameEvent = (record, input) => record.requestId.toString() === input.requestId
   && record.purpose === input.purpose && record.amount === input.amount && record.currency === input.currency;
-const expectedPayment = (record, purpose) => {
+// What the homeowner owes for a purpose, from the request itself. Shared with checkout.
+export const expectedPayment = (record, purpose) => {
   if (purpose === "inspection") return record.inspectionFee;
   if (!record.quote) return undefined;
   return { amount: purpose === "repair_deposit" ? record.quote.depositAmount : record.quote.balanceAmount,
     currency: record.quote.total.currency };
 };
-const eligibleStage = { inspection: S.AWAITING_INSPECTION_PAYMENT, repair_deposit: S.AWAITING_REPAIR_DEPOSIT, repair_balance: S.AWAITING_FINAL_PAYMENT };
+export const eligibleStage = { inspection: S.AWAITING_INSPECTION_PAYMENT, repair_deposit: S.AWAITING_REPAIR_DEPOSIT, repair_balance: S.AWAITING_FINAL_PAYMENT };
 const reservationEnded = (reservation, now) => reservation
   && (reservation.paymentDeadline <= now || ["released", "expired"].includes(reservation.state));
 const reconcile = async (receipt) => {
@@ -54,7 +55,7 @@ export const applyVerifiedPayment = async (event) => {
     }
     const expected = expectedPayment(record, input.purpose);
     requireCondition(expected && expected.amount === input.amount && expected.currency === input.currency,
-      "Payment purpose, amount, or currency does not match the expected obligation", 422);
+      "Payment purpose, amount, or currency does not match the expected obligation", 422, "PAYMENT_AMOUNT_MISMATCH");
     let now = new Date();
     let status = effectiveStatus(record, now);
     const appointmentKind = input.purpose === "inspection" ? "inspection" : "repair";
@@ -62,7 +63,7 @@ export const applyVerifiedPayment = async (event) => {
     let expired = input.purpose !== "repair_balance" && reservationEnded(reservation, now);
     // A previously started processing attempt can also require reconciliation after a stage change.
     requireCondition(expired || status === eligibleStage[input.purpose] || receipt,
-      "Payment is not eligible at the current booking stage");
+      "Payment is not eligible at the current booking stage", 409, "PAYMENT_NOT_ELIGIBLE");
     if (!receipt) {
       try {
         receipt = await PaymentEvent.create({
@@ -90,7 +91,8 @@ export const applyVerifiedPayment = async (event) => {
     if (input.purpose === "repair_balance") {
       record.status = S.COMPLETED; record.completedAt = now;
     } else {
-      requireCondition(reservation.state === "reserved", "Payment requires a live temporary reservation");
+      // A receipt already exists here: never throw and leave it stuck in processing.
+      if (reservation.state !== "reserved") return reconcile(receipt);
       record.$where[`${appointmentKind}.state`] = "reserved";
       record.$where.$expr = { $gt: [`$${appointmentKind}.paymentDeadline`, "$$NOW"] };
       reservation.state = "confirmed"; reservation.confirmedAt = now;

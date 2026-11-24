@@ -1,6 +1,6 @@
 # Route B: support, reviews and credentials
 
-These workflows work without a live payment provider. No HTTP endpoint marks a booking paid, transfers funds, issues refunds or calls the payment simulator. Real checkout/webhooks, rescheduling and quote revisions remain deferred.
+Online payment goes through Paystack (see [Paystack payments](#paystack-payments)). No other HTTP endpoint marks a booking paid, transfers funds or calls the payment simulator. Payouts to artisans are manual. Rescheduling and quote revisions remain deferred.
 
 ## Support
 
@@ -23,7 +23,42 @@ Notes are required (1–2000 characters); external references are 1–200 charac
 
 Payment dispositions are `externally_refunded` or `externally_settled`, requiring external evidence and a note. These record an operator's confirmation that the matter was handled outside Fixly; they do not initiate that action. Original `reconciliation_required` outcomes remain immutable, replay never applies them to a booking, and `processing`/`applied` events cannot be resolved here. Resolution removes that event's account-deletion restriction. A separate unresolved booking or receipt still blocks lifecycle changes.
 
+While an automatic refund is `requesting`, `pending` or `processed`, a manual resolution returns `409` (`REFUND_IN_PROGRESS`). One that Paystack `failed` or flagged `needs_attention` stays in the queue for an administrator to handle by hand.
+
 Mutations hold the administrator and both participant account locks, recheck administrator eligibility/session, and retain historical records after account removal. Operator access to these private support routes should be limited to people actually performing support.
+
+## Paystack payments
+
+The server decides what is due and how much; the browser never sends a purpose or an amount. Only Paystack's own verify API decides whether money was taken, and the request and purpose always come from our stored `PaymentAttempt`, never from the browser, a webhook payload or provider metadata. Every successful charge ends as one `PaymentEvent` (`paystack:<reference>`): `applied` to the booking, or `reconciliation_required` and refunded.
+
+| Method/path | Contract |
+| --- | --- |
+| `POST /api/v1/service-requests/:id/payments` | Homeowner with a verified email. Starts or reuses the checkout for what the request is waiting on. Returns `reference`, `accessCode` (for the Paystack popup), `purpose`, `amount`, `currency`, `paymentDeadline`. |
+| `POST /api/v1/service-requests/:id/payments/:reference/verify` | Homeowner. Asks Paystack about the checkout and settles it. Safe to repeat. Returns Paystack's `status`, our `outcome` once settled, and the updated `request`. |
+| `POST /api/v1/payments/paystack/webhook` | Paystack only, authenticated by the `x-paystack-signature` HMAC-SHA512 of the raw body. |
+
+Both homeowner routes are limited per user (`PAYMENT_RATE_LIMIT_MAX`, default 20 a minute). Before a new checkout starts, earlier unsettled checkouts for the same payment are checked with Paystack, so a payment whose confirmation was lost is never charged twice.
+
+**Webhook.** The signature is checked over the exact bytes before anything is parsed (bodies up to 64kb, `application/json` only). A missing key answers `503`, a bad signature `401`, an unparseable body `400`. `charge.success` only names which of our references to look at again: the server calls Paystack's verify API and settles from that. `refund.*` events re-read the refund from Paystack the same way. References that are not ours, and other events, get `200` and are ignored. Anything else that fails answers `500` so Paystack retries (up to 72 hours in live mode). Replays, retries and a webhook racing the popup confirmation all settle once.
+
+**Payments that cannot count** (paid after the deadline, a second payment for the same thing, a different amount, or a participant who is no longer eligible) are recorded as `reconciliation_required` and refunded in full automatically. Paystack's fee on them is not returned. Refund states:
+
+| `refund.state` | Meaning |
+| --- | --- |
+| `requesting` | Claimed and sent; Paystack's answer was unclear. The sweep asks Paystack whether a refund exists before trying again, at most 3 tries. |
+| `pending` | Paystack accepted the refund. |
+| `processed` | Paystack's record says it was refunded. The event is resolved automatically (`externally_refunded`, `automatic: true`) and stops blocking the accounts. |
+| `failed` | Paystack refused, and holds no refund for the payment. Left for an administrator. |
+| `needs_attention` | Paystack flagged it, refunded a different amount, or never confirmed. Left for an administrator. |
+
+Only one caller can claim a refund (an atomic update that also requires no resolution), so a payment is never refunded twice, and never both refunded automatically and resolved by hand.
+
+**Sweep.** Every `PAYMENT_SWEEP_INTERVAL_MS` (default 5 minutes), when a key is set, a bounded pass (25 of each kind):
+1. Checks unsettled checkouts from the last 72 hours (older than 2 minutes) with Paystack, least recently checked first, and settles any that were paid.
+2. Starts refunds that were never started.
+3. Recovers refunds left `requesting` for 10 minutes, and re-reads `pending` refunds not checked for an hour.
+
+**Setup.** Put the test secret key in `PAYSTACK_SECRET_KEY` (a live key is refused unless `NODE_ENV=production`). In the Paystack dashboard set the webhook URL to `https://<public host>/api/v1/payments/paystack/webhook`; locally that needs a tunnel.
 
 ## Reviews and rating summaries
 

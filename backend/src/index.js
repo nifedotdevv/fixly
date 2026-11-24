@@ -20,6 +20,8 @@ import adminRoutes from "./routes/admin.js";
 import usersRoutes from "./routes/users.js";
 import uploadsRoutes from "./routes/uploads.js";
 import serviceRequestRoutes from "./routes/serviceRequests.js";
+import { paystackWebhook } from "./controllers/payments.js";
+import { sweepPayments } from "./services/payments/sweep.js";
 
 dotenv.config();
 
@@ -37,6 +39,9 @@ if (process.env.TRUST_PROXY) {
 
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
+// Paystack webhook: before express.json so the signature is checked against the exact raw bytes, and before
+// the API rate limiter so Paystack's retries are never refused. It is authenticated by its signature alone.
+app.post("/api/v1/payments/paystack/webhook", express.raw({ type: "application/json", limit: "64kb" }), paystackWebhook);
 app.use(express.json({ limit: "10kb" }));
 app.use(morgan("dev"));
 
@@ -136,6 +141,8 @@ export const startServer = async ({ host, port = Number(process.env.PORT || 5000
         jobs.push(startAvatarCleanupSweep());
         jobs.push(startBackgroundTask(recoverPendingAccountLifecycles, recoveryInterval, { runImmediately: true }));
         jobs.push(startBackgroundTask(() => expireServiceRequests(), expiryInterval));
+        const paymentSweepInterval = positiveInteger("PAYMENT_SWEEP_INTERVAL_MS", 300_000, 86_400_000);
+        jobs.push(startBackgroundTask(() => sweepPayments(), paymentSweepInterval));
         await new Promise((resolve, reject) => {
             server = app.listen({ host, port });
             server.once("error", reject);
