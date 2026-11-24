@@ -1,10 +1,14 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { ToastProvider } from '../../components/ui/index.js'
-import { REQUEST_STATUSES } from '../../lib/requestStatus.js'
+import { REQUEST_STATUSES, isPaymentWaiting } from '../../lib/requestStatus.js'
+import { openCheckout } from '../../lib/paystack.js'
 import RequestDetail from './RequestDetail.jsx'
+import { LOAD_TIMEOUT_MS } from './usePayment.js'
+
+vi.mock('../../lib/paystack.js', () => ({ openCheckout: vi.fn() }))
 
 let auth = { me: { role: 'house_owner' } }
 vi.mock('../../auth/useAuth.js', () => ({ useAuth: () => auth }))
@@ -117,7 +121,7 @@ test('fixtures cover all 20 statuses', () => {
 })
 
 describe.each(['house_owner', 'artisan'])('as %s', (role) => {
-  test.each(REQUEST_STATUSES)('%s renders the right panel, never a pay control', async (status) => {
+  test.each(REQUEST_STATUSES)('%s renders the right panel, with a pay control only for the homeowner when payment is due', async (status) => {
     auth = { me: { role } }
     serve({ 'GET /service-requests/r1': ok(FIXTURES[status]) })
     const { container } = mount()
@@ -126,19 +130,155 @@ describe.each(['house_owner', 'artisan'])('as %s', (role) => {
     if (PRIMARY[status]) expect(shown[0]).toBe(PRIMARY[status])
     else expect(shown).not.toContain('payment-waiting')
     if (FIXTURES[status].quote) expect(shown).toContain('quote')
-    expect(document.body.textContent).not.toMatch(/pay now|pay ₦|checkout/i)
-    expect(screen.queryByRole('button', { name: /^pay\b/i })).toBeNull()
+    const payable = role === 'house_owner' && isPaymentWaiting(status)
+    expect(screen.queryAllByRole('button', { name: /^pay\b/i })).toHaveLength(payable ? 1 : 0)
     expect(screen.queryByRole('link', { name: /^pay\b/i })).toBeNull()
   })
 })
 
-test('payment-waiting panel shows the amount due and no pay control', async () => {
-  serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit) })
-  mount()
-  await screen.findByRole('heading', { level: 2, name: 'Waiting for payment' })
-  expect(screen.getByText(/Online payment isn.t available in Fixly yet/)).toBeInTheDocument()
-  expect(screen.getByText(/Amount due/).parentElement).toHaveTextContent('70,000.00')
-  expect(screen.getByText(/left$/)).toBeInTheDocument()
+describe('paying', () => {
+  const START = 'POST /service-requests/r1/payments'
+  const VERIFY = 'POST /service-requests/r1/payments/fx-dep-ours/verify'
+  const started = ok({ reference: 'fx-dep-ours', accessCode: 'ac_1', purpose: 'repair_deposit', amount: 7000000, currency: 'NGN' })
+  const checked = (data) => ok({ reference: 'fx-dep-ours', purpose: 'repair_deposit', request: FIXTURES.awaiting_repair_deposit, ...data })
+  const popup = (outcome) => openCheckout.mockImplementation(async (_code, callbacks) => { callbacks[outcome]({ reference: 'someone-elses' }) })
+  const calls = () => globalThis.fetch.mock.calls.map(([url, init]) => `${init?.method ?? 'GET'} ${String(url).replace('/api/v1', '')}`)
+  const payButton = () => screen.findByRole('button', { name: 'Pay ₦70,000.00' })
+  beforeEach(() => { openCheckout.mockReset() })
+
+  test('the artisan sees who pays and no pay control', async () => {
+    auth = { me: { role: 'artisan' } }
+    serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit) })
+    mount()
+    await screen.findByRole('heading', { level: 2, name: 'Waiting for payment' })
+    expect(screen.getByText(/The homeowner pays the repair deposit through Paystack/)).toBeInTheDocument()
+    expect(screen.getByText(/Amount due/).parentElement).toHaveTextContent('70,000.00')
+    expect(screen.getByText(/^Deposit due .* left$/)).toBeInTheDocument()
+  })
+
+  test('pays through the popup, and the server confirms with our own reference', async () => {
+    serve({
+      'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit),
+      [START]: started,
+      [VERIFY]: checked({ status: 'success', outcome: 'applied', request: FIXTURES.repair_confirmed }),
+    })
+    popup('onSuccess')
+    mount()
+    await screen.findByRole('heading', { level: 2, name: 'Pay the repair deposit' })
+    expect(screen.getByText(/Fixly never sees your card or bank details/)).toBeInTheDocument()
+    await userEvent.click(await payButton())
+    await screen.findByText('Payment received')
+    expect(openCheckout).toHaveBeenCalledWith('ac_1', expect.any(Object))
+    expect(calls()).toEqual(['GET /service-requests/r1', START, VERIFY])
+    // The booking moved on: no pay control is left.
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^pay\b/i })).toBeNull())
+  })
+
+  test('closing the popup checks quietly, so a payment made just before closing still counts', async () => {
+    serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started, [VERIFY]: checked({ status: 'abandoned', outcome: null }) })
+    popup('onCancel')
+    mount()
+    await userEvent.click(await payButton())
+    await waitFor(() => expect(calls()).toContain(VERIFY))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(await payButton()).not.toHaveAttribute('aria-busy')
+  })
+
+  test('a payment that cannot count shows the refund notice, even after the stage changes', async () => {
+    serve({
+      'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started,
+      [VERIFY]: checked({ status: 'success', outcome: 'reconciliation_required', request: FIXTURES.repair_payment_expired }),
+    })
+    popup('onSuccess')
+    mount()
+    await userEvent.click(await payButton())
+    await screen.findByText(/couldn.t be applied to this booking/)
+    expect(screen.getByText(/refunded to you in full automatically/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    expect(screen.queryByText(/couldn.t be applied to this booking/)).toBeNull()
+  })
+
+  test('a payment Paystack is still processing can be checked again', async () => {
+    let answer = checked({ status: 'pending', outcome: null })
+    serve({
+      'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started, [VERIFY]: () => answer,
+    })
+    popup('onSuccess')
+    mount()
+    await userEvent.click(await payButton())
+    await screen.findByText(/Paystack is still processing this payment/)
+    answer = checked({ status: 'success', outcome: 'applied', request: FIXTURES.repair_confirmed })
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }))
+    await screen.findByText('Payment received')
+  })
+
+  test('a failed payment says nothing was taken and lets the homeowner try again', async () => {
+    serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started, [VERIFY]: checked({ status: 'failed', outcome: null }) })
+    popup('onSuccess')
+    mount()
+    await userEvent.click(await payButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent(/didn.t go through, and nothing was taken/)
+    expect(await payButton()).toBeEnabled()
+  })
+
+  test('shows why a checkout could not start, and refreshes the request when the stage moved on', async () => {
+    serve({
+      'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit),
+      [START]: [409, { message: 'This payment was already made. Reload the request to see it.', code: 'PAYMENT_ALREADY_MADE' }],
+    })
+    mount()
+    await userEvent.click(await payButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent('This payment was already made')
+    expect(openCheckout).not.toHaveBeenCalled()
+    await waitFor(() => expect(calls().filter((call) => call === 'GET /service-requests/r1').length).toBeGreaterThan(1))
+  })
+
+  test('says so when the Paystack checkout cannot load', async () => {
+    serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started })
+    openCheckout.mockRejectedValue(new Error('script failed'))
+    mount()
+    await userEvent.click(await payButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent(/checkout couldn.t open/)
+  })
+
+  test('stops waiting when the Paystack checkout never shows, and a late success still counts', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let callbacks
+      const close = vi.fn()
+      openCheckout.mockImplementation(async (_code, given) => { callbacks = given; return close })
+      serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started,
+        [VERIFY]: checked({ status: 'success', outcome: 'applied', request: FIXTURES.repair_confirmed }) })
+      mount()
+      await userEvent.click(await payButton())
+      await waitFor(() => expect(openCheckout).toHaveBeenCalled())
+      expect(screen.queryByRole('alert')).toBeNull()
+      await act(() => vi.advanceTimersByTimeAsync(LOAD_TIMEOUT_MS))
+      expect(await screen.findByRole('alert')).toHaveTextContent(/checkout couldn.t open/)
+      expect(close).toHaveBeenCalledOnce()
+      await act(async () => callbacks.onSuccess({ reference: 'fx-dep-ours' }))
+      await screen.findByText('Payment received')
+    } finally { vi.useRealTimers() }
+  })
+
+  test('does not give up on a checkout that loaded', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      openCheckout.mockImplementation(async (_code, callbacks) => { callbacks.onLoad({}) })
+      serve({ 'GET /service-requests/r1': ok(FIXTURES.awaiting_repair_deposit), [START]: started })
+      mount()
+      await userEvent.click(await payButton())
+      await waitFor(() => expect(openCheckout).toHaveBeenCalled())
+      await act(() => vi.advanceTimersByTimeAsync(LOAD_TIMEOUT_MS * 2))
+      expect(screen.queryByRole('alert')).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
+
+  test('cannot pay once the time to pay has run out', async () => {
+    serve({ 'GET /service-requests/r1': ok({ ...FIXTURES.awaiting_repair_deposit, repair: { paymentDeadline: iso(-1) } }) })
+    mount()
+    expect(await payButton()).toBeDisabled()
+  })
 })
 
 test('support panel, ended copy and find-another link', async () => {
