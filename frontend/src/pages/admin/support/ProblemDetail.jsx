@@ -99,7 +99,7 @@ function History({ items }) {
 function ResolveForm({ id, problem }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const toast = useToast()
+  const { toast } = useToast()
   const [disposition, setDisposition] = useState('')
   const [note, setNote] = useState('')
   const [reference, setReference] = useState('')

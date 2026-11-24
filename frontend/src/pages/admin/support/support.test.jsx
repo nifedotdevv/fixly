@@ -125,6 +125,7 @@ test('closing requires a reference and sends problemReportedAt from the doc', as
   expect(JSON.parse(posts()[0][1].body)).toEqual({
     disposition: 'close', note: 'Called both sides', problemReportedAt: REPORTED, resolutionReference: 'TCK-9',
   })
+  expect(await screen.findByText('Job closed')).toBeInTheDocument()
 })
 
 test('a 409 keeps the note and refetches the problem', async () => {
@@ -173,5 +174,70 @@ test('payment resolve sends the prefilled paymentReference', async () => {
   await waitFor(() => expect(posts()).toHaveLength(1))
   expect(JSON.parse(posts()[0][1].body)).toEqual({
     paymentReference: 'pay_ref_1', disposition: 'externally_refunded', note: 'Refunded by bank transfer', resolutionReference: 'CALL-4',
+  })
+  expect(await screen.findByText('Marked as refunded outside Fixly')).toBeInTheDocument()
+})
+
+describe('automatic refunds in the payments queue', () => {
+  const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
+  const paid = (id, over = {}) => ({ ...payment, _id: `paystack:fx-dep-${id}`, createdAt: minutesAgo(60), ...over })
+
+  test('shows what each refund is doing, offers Resolve only where a person must act, and lists those first', async () => {
+    route({
+      'GET /admin/support/requests': ok([], 0),
+      'GET /admin/support/payments': ok([
+        paid('requesting', { refund: { state: 'requesting' } }),
+        paid('pending', { refund: { state: 'pending' } }),
+        paid('starting', { createdAt: minutesAgo(2) }),
+        paid('failed', { refund: { state: 'failed', failureReason: 'Paystack refused the refund: Insufficient balance' } }),
+        paid('attention', { refund: { state: 'needs_attention', failureReason: 'Paystack needs action on this refund.' } }),
+        paid('stalled', { createdAt: minutesAgo(45) }),
+        { ...payment, _id: 'simulated:1' },
+      ], 7),
+    })
+    mount('/admin/support/payments')
+    const list = await screen.findByRole('list', { name: 'Payments to reconcile' })
+    expect(screen.getByText('7 payments to reconcile, 4 need you')).toBeInTheDocument()
+
+    expect(within(list).getByText('Refunding automatically')).toBeInTheDocument()
+    expect(within(list).getByText('Refund sent, waiting for Paystack')).toBeInTheDocument()
+    expect(within(list).getByText('Refund starting')).toBeInTheDocument()
+    expect(within(list).getByText('Refund failed')).toBeInTheDocument()
+    expect(within(list).getByText('Paystack refused the refund: Insufficient balance')).toBeInTheDocument()
+    expect(within(list).getByText('Needs attention')).toBeInTheDocument()
+    expect(within(list).getByText('Refund didn’t start')).toBeInTheDocument()
+    expect(within(list).getByText('Not refunded automatically')).toBeInTheDocument()
+
+    expect(within(list).getAllByRole('button', { name: 'Resolve' })).toHaveLength(4)
+    expect(within(list).getAllByText('No action needed')).toHaveLength(3)
+
+    // Rows needing a person come first, each group keeping the server's order.
+    const order = [...list.textContent.matchAll(/paystack:fx-dep-(requesting|pending|starting|failed|attention|stalled)|simulated:1/g)].map((m) => m[1] ?? 'simulated')
+    expect(order).toEqual(['failed', 'attention', 'stalled', 'simulated', 'requesting', 'pending', 'starting'])
+  })
+
+  test('refreshes the queue when the server says a refund started meanwhile', async () => {
+    let queue = [paid('race')]
+    route({
+      'GET /admin/support/requests': ok([], 0),
+      'GET /admin/support/payments': () => ok(queue),
+      'POST /admin/support/payments/resolve': () => {
+        queue = [paid('race', { refund: { state: 'requesting' } })]
+        return fail(409, 'An automatic refund is in progress for this payment. Wait for it to finish before resolving it.')
+      },
+    })
+    const user = userEvent.setup()
+    mount('/admin/support/payments')
+    await user.click(await screen.findByRole('button', { name: 'Resolve' }))
+    const form = await screen.findByRole('dialog')
+    await user.click(within(form).getByLabelText('Refunded outside Fixly'))
+    await user.type(within(form).getByLabelText('Note'), 'Checked')
+    await user.type(within(form).getByLabelText('Resolution reference'), 'T-1')
+    await user.click(within(form).getByRole('button', { name: 'Review resolution' }))
+    const confirm = await screen.findByRole('alertdialog')
+    await user.click(within(confirm).getByRole('button', { name: 'Record resolution' }))
+    expect(await screen.findByText(/automatic refund is in progress/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Refunding automatically')).toBeInTheDocument())
+    expect(screen.getByText('No action needed')).toBeInTheDocument()
   })
 })
