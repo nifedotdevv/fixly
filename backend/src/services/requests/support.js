@@ -11,6 +11,8 @@ const assertAdmin = async (authenticatedActor) => {
     && (actor.authVersion || 0) === (authenticatedActor.authVersion || 0),
   "An active administrator account and session are required", 403);
 };
+// A refund Paystack refused or flagged leaves the payment for an admin to settle by hand.
+const MANUAL_REFUND_STATES = ["failed", "needs_attention"];
 const sameResolution = (resolution, input) => resolution.disposition === input.disposition
   && resolution.note === input.note && (resolution.resolutionReference || "") === (input.resolutionReference || "");
 
@@ -62,9 +64,16 @@ export const resolveReconciliation = async (actor, input) => {
       requireCondition(sameResolution(event.resolution, input), "This payment event has already been resolved differently");
       return event;
     }
-    event.resolution = { disposition: input.disposition, note: input.note,
-      resolutionReference: input.resolutionReference, resolvedBy: actorId, resolvedAt: new Date() };
-    await event.save();
-    return event;
+    // An automatic refund in flight (or done) must never also be settled or refunded by hand.
+    requireCondition(!event.refund || MANUAL_REFUND_STATES.includes(event.refund.state),
+      "An automatic refund is in progress for this payment. Wait for it to finish before resolving it.", 409, "REFUND_IN_PROGRESS");
+    // Atomic against the refund claim, which also requires no resolution.
+    const resolved = await PaymentEvent.findOneAndUpdate({
+      _id: event._id, outcome: "reconciliation_required", resolution: { $exists: false },
+      $or: [{ refund: { $exists: false } }, { "refund.state": { $in: MANUAL_REFUND_STATES } }],
+    }, { $set: { resolution: { disposition: input.disposition, note: input.note,
+      resolutionReference: input.resolutionReference, resolvedBy: actorId, resolvedAt: new Date() } } }, { new: true });
+    requireCondition(resolved, "This payment changed while it was being resolved. Reload it and try again.");
+    return resolved;
   });
 };

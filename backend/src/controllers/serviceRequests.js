@@ -6,9 +6,9 @@ import { REQUEST_STATUS } from "../constants/serviceRequests.js";
 import { withParticipants } from "../services/requests/participants.js";
 import { assertParticipant, loadRequest } from "../services/requests/serviceRequests.js";
 
-const respond = (res, statusCode, data, message = "Service request updated successfully") =>
+export const respond = (res, statusCode, data, message = "Service request updated successfully") =>
   res.status(statusCode).json({ statusCode, success: true, message, data });
-const failure = (res, error) => error.statusCode
+export const failure = (res, error) => error.statusCode
   ? res.status(error.statusCode).json({ statusCode: error.statusCode, success: false, message: error.message,
     ...(typeof error.code === "string" ? { code: error.code } : {}) })
   : handleMongooseError(res, error);
