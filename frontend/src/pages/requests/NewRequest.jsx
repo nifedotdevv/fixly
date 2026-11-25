@@ -24,11 +24,12 @@ const fieldFor = (message) => {
   return FIELD_NAMES.find((name) => text.includes(name)) ?? null
 }
 
-// Earlier of start minus 1 hour and 24 hours from now, but never sooner than the 15 minute minimum.
+// Earlier of start minus 1 hour and 24 hours from now, never sooner than the 15 minute minimum,
+// and never after the start (a start too soon for any reply is reported on the start field instead).
 function defaultDeadline(startIso, now = Date.now()) {
   const start = new Date(startIso).getTime()
   if (Number.isNaN(start)) return null
-  const target = Math.max(Math.min(start - HOUR, now + 24 * HOUR), now + MIN_MS + 60000)
+  const target = Math.min(Math.max(Math.min(start - HOUR, now + 24 * HOUR), now + MIN_MS + 60000), start)
   return toOffsetISO(new Date(target))
 }
 
@@ -45,11 +46,15 @@ function validate(values, now = Date.now()) {
   const end = values.end ? new Date(values.end).getTime() : null
   if (start == null) errors.start = 'Choose when the inspection can start.'
   else if (start <= now) errors.start = 'Start time must be in the future.'
+  // The artisan needs at least 15 minutes to reply, and must reply before the start.
+  else if (start - now < MIN_MS) errors.start = 'Start at least 15 minutes from now, so the artisan has time to reply.'
   if (end == null) errors.end = 'Choose when the inspection window ends.'
   else if (start != null && end <= start) errors.end = 'End time must be after the start time.'
 
   const deadline = values.responseDeadline ? new Date(values.responseDeadline).getTime() : null
   if (deadline == null) errors.responseDeadline = 'Choose when you need a reply by.'
+  // While the start itself is too soon, its message explains the fix; a reply error would only mislead.
+  else if (errors.start) { /* reported on the start */ }
   else if (deadline - now < MIN_MS) errors.responseDeadline = 'Reply time must be at least 15 minutes from now.'
   else if (deadline - now > MAX_MS) errors.responseDeadline = 'Reply time must be within 7 days from now.'
   else if (start != null && deadline > start) errors.responseDeadline = 'Reply time must be no later than the inspection start.'
@@ -194,8 +199,11 @@ export default function NewRequest() {
               <Input value={values.serviceAddress} onChange={(e) => set('serviceAddress')(e.target.value)} />
             </Field>
             <fieldset className="flex flex-col gap-4">
-              <legend className="mb-1 font-medium">Inspection window</legend>
-              <p className="-mt-3 text-caption text-muted">Times are in {zoneLabel()}</p>
+              {/* The zone note sits inside the legend: a legend is not a flex item, so a sibling cannot be spaced against it. */}
+              <legend className="mb-4 flex flex-col gap-1">
+                <span className="font-medium">Inspection window</span>
+                <span className="text-caption text-muted">Times are in {zoneLabel()}</span>
+              </legend>
               <Field label="Starts" error={errors.start}>
                 <DateTimeInput hideZone value={values.start ? toLocalInput(values.start) : ''} onChange={setStart} />
               </Field>
