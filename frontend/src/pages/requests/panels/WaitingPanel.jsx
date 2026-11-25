@@ -1,4 +1,4 @@
-import { deadlineFor } from '../../../lib/requestStatus.js'
+import { deadlineFor, deadlineLabel } from '../../../lib/requestStatus.js'
 import { formatDateTime, formatRelative } from '../../../lib/time.js'
 
 // Stage copy per status and role, following the §4 status matrix.
@@ -46,7 +46,7 @@ export default function WaitingPanel({ view, role }) {
       <p className="max-w-[60ch] text-fg-2">{text}</p>
       {deadline && (
         <p className="tabular text-caption text-warning">
-          Ends {formatDateTime(deadline)}, {formatRelative(deadline)}
+          {deadlineLabel(view.status)} {formatDateTime(deadline)}, {formatRelative(deadline)}
         </p>
       )}
     </section>
