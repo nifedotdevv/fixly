@@ -382,7 +382,7 @@ describe("never losing or double-taking money", () => {
     assert.equal((await Booking.findById(id)).verifiedPayments.length, 1);
     const event = await PaymentEvent.findById(`paystack:${second}`).lean();
     assert.equal(event.outcome, "reconciliation_required");
-    assert.match(event.reason, /no longer waiting/);
+    assert.match(event.reason, /stopped waiting for this payment/);
     assert.equal((await confirm(id, p.homeowner, second).expect(200)).body.data.outcome, "reconciliation_required");
     assert.equal((await events(id)).length, 2);
   });
