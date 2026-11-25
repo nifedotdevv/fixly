@@ -110,6 +110,15 @@ const DEADLINE_LABEL = {
 }
 export const deadlineLabel = (status) => DEADLINE_LABEL[status] ?? 'Ends'
 
+const DEADLINE_PASSED = {
+  pending: 'Reply was due',
+  awaiting_inspection_payment: 'Payment was due',
+  quote_submitted: 'Quote expired',
+  awaiting_repair_deposit: 'Deposit was due',
+}
+// The same deadline once it has passed, e.g. "Reply was due".
+export const deadlinePassedLabel = (status) => DEADLINE_PASSED[status] ?? 'Ended'
+
 export function deadlineFor(view) {
   switch (view.status) {
     case 'pending':

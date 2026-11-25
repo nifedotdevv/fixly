@@ -33,9 +33,21 @@ test('problem_reported renders the error marker', () => {
 test('deadline line renders in the label and as text', () => {
   const deadline = new Date(Date.now() + 22 * 60000).toISOString()
   const { container } = render(<StageSteps status="quote_submitted" view={{}} deadline={deadline} />)
-  expect(screen.getByText(/^Ends .*, in 2[12] min$/)).toBeInTheDocument()
+  expect(screen.getByText(/^Quote expires .*, in 2[12] min$/)).toBeInTheDocument()
   expect(screen.getByTestId('steps-deadline')).toBeInTheDocument()
-  expect(label(container)).toMatch(/Ends .*in 2[12] min\.$/)
+  expect(label(container)).toMatch(/Quote expires .*in 2[12] min\.$/)
+})
+
+test('the deadline line names what is due, and what was due once it passed', () => {
+  const soon = new Date(Date.now() + 60 * 60000).toISOString()
+  const past = new Date(Date.now() - 5 * 60000).toISOString()
+  const { rerender } = render(<StageSteps status="pending" view={{}} deadline={soon} />)
+  expect(screen.getByTestId('steps-deadline')).toHaveTextContent(/^Reply due .*, in (1 h|60 min)/)
+  rerender(<StageSteps status="awaiting_inspection_payment" view={{}} deadline={soon} />)
+  expect(screen.getByTestId('steps-deadline')).toHaveTextContent(/^Payment due /)
+  rerender(<StageSteps status="awaiting_repair_deposit" view={{}} deadline={past} />)
+  expect(screen.getByTestId('steps-deadline')).toHaveTextContent(/^Deposit was due /)
+  expect(document.body.textContent).not.toMatch(/\bEnds\b/)
 })
 
 test('no transition on first render, colours fade after a status change', () => {

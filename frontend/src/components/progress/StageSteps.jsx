@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Ban, Check, CircleAlert, Clock } from 'lucide-react'
-import { MILESTONES, milestoneFor, statusMeta } from '../../lib/requestStatus.js'
+import { MILESTONES, deadlineLabel, deadlinePassedLabel, milestoneFor, statusMeta } from '../../lib/requestStatus.js'
 import { formatRelative, formatDateTime } from '../../lib/time.js'
 import { useCountdown } from '../../lib/useCountdown.js'
 import { cn } from '../ui/cn.js'
@@ -20,7 +20,7 @@ function describe({ status, deadline, milestone, label }) {
     const next = MILESTONES[milestone + 1]
     text = `Stage ${stage}: ${here}.${next ? ` Next: ${next}.` : ''}`
   }
-  if (deadline) text += ` Ends ${formatDateTime(deadline)}, ${formatRelative(deadline)}.`
+  if (deadline) text += ` ${deadlineLabel(status)} ${formatDateTime(deadline)}, ${formatRelative(deadline)}.`
   return text
 }
 
@@ -126,8 +126,8 @@ export default function StageSteps({ status, view, deadline = null, size = 'full
             <Clock size={16} strokeWidth={1.75} className="shrink-0" />
             <span className="tabular-nums">
               {countdown.expired
-                ? `Ended ${formatDateTime(deadline)}`
-                : `Ends ${formatDateTime(deadline)}, ${formatRelative(deadline)}`}
+                ? `${deadlinePassedLabel(status)} ${formatDateTime(deadline)}`
+                : `${deadlineLabel(status)} ${formatDateTime(deadline)}, ${formatRelative(deadline)}`}
             </span>
           </p>
         )}

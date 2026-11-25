@@ -24,7 +24,7 @@ const reservationEnded = (reservation, now) => reservation
   && (reservation.paymentDeadline <= now || ["released", "expired"].includes(reservation.state));
 const reconcile = async (receipt) => {
   receipt.outcome = "reconciliation_required";
-  receipt.reason = "The reservation or eligible stage ended before this payment could be applied. No slot was reclaimed; support reconciliation is required.";
+  receipt.reason = "The time to pay ran out or the booking moved on before this payment could be applied. The booking was not reopened.";
   await receipt.save();
   return outcomeView(receipt);
 };

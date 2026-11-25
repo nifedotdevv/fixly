@@ -75,6 +75,23 @@ test('blocks a deadline after the inspection start', async () => {
   expect(postCall()).toBeUndefined()
 })
 
+test('a start too soon for any reply is explained on the start, not as a reply error', async () => {
+  setup(profile(), () => res(201, { data: { id: 'r9' } }))
+  const user = userEvent.setup()
+  await screen.findByLabelText('What needs fixing?')
+  await user.type(screen.getByLabelText('What needs fixing?'), 'Leaking tap')
+  await user.type(screen.getByLabelText('Service address'), '12 Allen Avenue')
+  fireEvent.change(screen.getByLabelText('Starts'), { target: { value: local(13 * 60000) } })
+  fireEvent.change(screen.getByLabelText('Ends'), { target: { value: local(73 * 60000) } })
+  // The suggested reply time never lands after the start.
+  expect(new Date(screen.getByLabelText('Reply needed by').value).getTime())
+    .toBeLessThanOrEqual(new Date(screen.getByLabelText('Starts').value).getTime())
+  await user.click(screen.getByRole('button', { name: 'Send request' }))
+  expect(await screen.findByText('Start at least 15 minutes from now, so the artisan has time to reply.')).toBeInTheDocument()
+  expect(screen.queryByText(/^Reply time must/)).toBeNull()
+  expect(postCall()).toBeUndefined()
+})
+
 test('shows the verify notice on 403 and keeps values', async () => {
   setup(profile(), () => res(403, { code: 'EMAIL_NOT_VERIFIED', message: 'Verify your email address before performing this action.' }))
   const user = await fill()
